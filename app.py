@@ -20,13 +20,19 @@ login_manager.login_view = 'login'
 # 用户加载器
 @login_manager.user_loader
 def load_user(user_id):
-    # 首先尝试加载管理员
-    admin = Admin.query.get(int(user_id))
-    if admin:
-        return admin
-    # 然后尝试加载普通用户
-    user = User.query.get(int(user_id))
-    return user
+    try:
+        user_id = int(user_id)
+        # 首先尝试加载管理员（ID 1-1000 预留给管理员）
+        if user_id <= 1000:
+            admin = Admin.query.get(user_id)
+            if admin:
+                return admin
+
+        # 然后尝试加载普通用户
+        user = User.query.get(user_id)
+        return user
+    except (ValueError, TypeError):
+        return None
 
 # 表单类定义
 class LoginForm(FlaskForm):
@@ -57,24 +63,25 @@ class CategoryForm(FlaskForm):
     name = StringField('分类名称', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('描述')
 
-# 新增全局变量标记是否初始化过
-initialized = False
-
 # 初始化数据库
-@app.before_request
-def create_tables_once():
-    global initialized
-    if not initialized:
-        with app.app_context():
+def initialize_database():
+    with app.app_context():
+        try:
             db.create_all()
-            # 创建默认管理员账户
+            print("数据库表创建成功")
+
+            # 创建默认管理员账户（ID为1）
             if not Admin.query.filter_by(username='admin').first():
                 admin = Admin(username='admin', email='admin@library.com')
                 admin.set_password('admin123')
                 db.session.add(admin)
                 db.session.commit()
-                print("Created default admin: admin/admin123")
-        initialized = True  # 标记为已初始化，避免重复执行
+                print("创建默认管理员: admin/admin123")
+
+            return True
+        except Exception as e:
+            print(f"数据库初始化失败: {e}")
+            return False
 
 # 路由定义
 @app.route('/')
@@ -165,15 +172,19 @@ def admin_dashboard():
 @app.route('/user/dashboard')
 @login_required
 def user_dashboard():
-    if isinstance(current_user, Admin):
+    # 如果是管理员但访问了用户仪表板，重定向到管理员仪表板
+    if current_user.__class__.__name__ == 'Admin':
+        flash('您是管理员，已跳转到管理员页面', 'info')
         return redirect(url_for('admin_dashboard'))
 
     user_borrows = BorrowRecord.query.filter_by(user_id=current_user.id, status='borrowed').limit(5).all()
     overdue_records = BorrowRecord.query.filter_by(user_id=current_user.id, status='borrowed').filter(BorrowRecord.due_date < datetime.utcnow()).count()
+    total_borrows = BorrowRecord.query.filter_by(user_id=current_user.id, status='borrowed').count()
 
     return render_template('user/dashboard.html',
                          user_borrows=user_borrows,
-                         overdue_count=overdue_records)
+                         overdue_count=overdue_records,
+                         total_borrows=total_borrows)
 
 # 管理员路由 - 用户管理
 @app.route('/admin/users')
@@ -457,12 +468,40 @@ def borrow_history():
     if isinstance(current_user, Admin):
         abort(403)
 
+    # 获取查询参数
     page = request.args.get('page', 1, type=int)
-    records = BorrowRecord.query.filter_by(user_id=current_user.id).order_by(
-        BorrowRecord.created_at.desc()
-    ).paginate(page=page, per_page=10, error_out=False)
+    search = request.args.get('search', '')
+    status = request.args.get('status', '')
 
-    return render_template('user/borrow_history.html', records=records)
+    # 构建查询
+    query = BorrowRecord.query.filter_by(user_id=current_user.id)
+
+    # 搜索条件
+    if search:
+        query = query.join(Book).filter(
+            Book.title.contains(search) | Book.author.contains(search)
+        )
+
+    # 状态筛选
+    if status == 'borrowed':
+        query = query.filter_by(status='borrowed')
+    elif status == 'returned':
+        query = query.filter_by(status='returned')
+    elif status == 'overdue':
+        query = query.filter(
+            BorrowRecord.status == 'borrowed',
+            BorrowRecord.due_date < datetime.utcnow()
+        )
+
+    # 分页查询
+    records = query.order_by(BorrowRecord.created_at.desc()).paginate(
+        page=page, per_page=10, error_out=False
+    )
+
+    return render_template('user/borrow_history.html',
+                         records=records,
+                         search=search,
+                         status=status)
 
 # 用户个人资料
 @app.route('/user/profile', methods=['GET', 'POST'])
