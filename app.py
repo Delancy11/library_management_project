@@ -22,13 +22,12 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     try:
         user_id = int(user_id)
-        # 首先尝试加载管理员（ID 1-1000 预留给管理员）
-        if user_id <= 1000:
-            admin = Admin.query.get(user_id)
-            if admin:
-                return admin
+        # 首先在管理员表中查找
+        admin = Admin.query.get(user_id)
+        if admin:
+            return admin
 
-        # 然后尝试加载普通用户
+        # 如果管理员表中没有，则在普通用户表中查找
         user = User.query.get(user_id)
         return user
     except (ValueError, TypeError):
