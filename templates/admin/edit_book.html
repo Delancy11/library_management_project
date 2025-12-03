@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}编辑图书 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-pencil"></i> 编辑图书</h2>
+        <p class="text-muted">修改图书《{{ book.title }}》的信息</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-book"></i> 图书信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.title.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.quantity.label(class="form-label") }}
+                            {{ form.quantity(class="form-control") }}
+                            {% if form.quantity.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.quantity.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">当前已借出: {{ book.quantity - book.available_quantity }} 本</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.author.label(class="form-label") }}
+                            {{ form.author(class="form-control") }}
+                            {% if form.author.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.author.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.isbn.label(class="form-label") }}
+                            {{ form.isbn(class="form-control", readonly=true) }}
+                            <small class="form-text text-muted">ISBN不可修改</small>
+                            {% if form.isbn.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.isbn.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.category_id.label(class="form-label") }}
+                            {{ form.category_id(class="form-select") }}
+                            {% if form.category_id.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.category_id.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.publisher.label(class="form-label") }}
+                            {{ form.publisher(class="form-control") }}
+                            {% if form.publisher.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.publisher.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.publication_date.label(class="form-label") }}
+                            {{ form.publication_date(class="form-control") }}
+                            {% if form.publication_date.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.publication_date.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">
+                                {% for error in form.description.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6><i class="bi bi-info-circle"></i> 当前状态</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>总数量：</strong>{{ book.quantity }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>可借数量：</strong>{{ book.available_quantity }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>已借出：</strong>{{ book.quantity - book.available_quantity }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>状态：</strong>
+                                    {% if book.available_quantity > 0 %}
+                                        <span class="badge bg-success">可借阅</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">已借完</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <strong>创建时间：</strong>{{ book.created_at.strftime('%Y-%m-%d %H:%M') }}<br>
+                                    <strong>更新时间：</strong>{{ book.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_books') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回列表
+                        </a>
+                        <div>
+                            <a href="{{ url_for('delete_book', book_id=book.id) }}" class="btn btn-danger me-2"
+                               onclick="return confirm('确定要删除《{{ book.title }}》吗？\n\n警告：删除后相关的借阅记录也将被删除，此操作不可恢复！')">
+                                <i class="bi bi-trash"></i> 删除图书
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 保存修改
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> 编辑说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>可修改项</h6>
+                <ul>
+                    <li><strong>书名、作者：</strong>图书基本信息</li>
+                    <li><strong>分类：</strong>重新分类图书</li>
+                    <li><strong>数量：</strong>调整藏书总数</li>
+                    <li><strong>出版社、出版日期：</strong>出版信息</li>
+                    <li><strong>描述：</strong>图书详细介绍</li>
+                </ul>
+
+                <h6>不可修改项</h6>
+                <ul>
+                    <li><strong>ISBN：</strong>图书唯一标识</li>
+                    <li><strong>已借出数量：</strong>通过借阅/归还调整</li>
+                    <li><strong>创建时间：</strong>图书录入时间</li>
+                </ul>
+
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>注意：</strong>减少图书数量时，确保数量不少于已借出的数量。
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="bi bi-bar-chart"></i> 借阅统计</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h4 class="text-primary">{{ book.borrow_records|length }}</h4>
+                    <p class="text-muted">总借阅次数</p>
+                </div>
+                <a href="{{ url_for('admin_borrow_records') }}?book_id={{ book.id }}" class="btn btn-outline-info w-100">
+                    <i class="bi bi-clock-history"></i> 查看借阅记录
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

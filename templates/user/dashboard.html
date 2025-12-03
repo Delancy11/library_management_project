@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}用户中心 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-house"></i> 用户中心</h2>
+        <p class="text-muted">欢迎回来，{{ current_user.username }}！</p>
+    </div>
+</div>
+
+<!-- 用户信息卡片 -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-person-circle"></i> 个人信息</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tbody>
+                        <tr>
+                            <td><strong>用户名：</strong></td>
+                            <td>{{ current_user.username }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>邮箱：</strong></td>
+                            <td>{{ current_user.email }}</td>
+                        </tr>
+                        {% if current_user.full_name %}
+                        <tr>
+                            <td><strong>姓名：</strong></td>
+                            <td>{{ current_user.full_name }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if current_user.phone %}
+                        <tr>
+                            <td><strong>手机号：</strong></td>
+                            <td>{{ current_user.phone }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if current_user.address %}
+                        <tr>
+                            <td><strong>地址：</strong></td>
+                            <td>{{ current_user.address }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td><strong>注册时间：</strong></td>
+                            <td>{{ current_user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('user_profile') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil"></i> 编辑资料
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-speedometer2"></i> 借阅统计</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h3 class="text-primary">{{ overdue_count }}</h3>
+                    <p class="text-muted">当前借阅</p>
+                </div>
+                {% if overdue_count > 0 %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    您有即将到期的图书需要归还！
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('borrow_history') }}" class="btn btn-outline-success">
+                    <i class="bi bi-clock-history"></i> 借阅历史
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> 快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('browse_books') }}" class="btn btn-primary w-100">
+                            <i class="bi bi-book"></i> 浏览图书
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('borrow_history') }}" class="btn btn-success w-100">
+                            <i class="bi bi-clock-history"></i> 借阅历史
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('user_profile') }}" class="btn btn-info w-100">
+                            <i class="bi bi-person"></i> 个人资料
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-box-arrow-right"></i> 退出登录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 最近借阅 -->
+{% if user_borrows %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-book"></i> 最近借阅</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>图书标题</th>
+                                <th>作者</th>
+                                <th>借阅日期</th>
+                                <th>应还日期</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in user_borrows %}
+                            <tr>
+                                <td>{{ record.book.title }}</td>
+                                <td>{{ record.book.author }}</td>
+                                <td>{{ record.borrow_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ record.due_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if record.status == 'borrowed' %}
+                                        {% if record.is_overdue() %}
+                                            <span class="badge bg-danger">已逾期</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">借阅中</span>
+                                        {% endif %}
+                                    {% elif record.status == 'returned' %}
+                                        <span class="badge bg-success">已归还</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.status == 'borrowed' %}
+                                        <a href="{{ url_for('return_book', record_id=record.id) }}"
+                                           class="btn btn-sm btn-success"
+                                           onclick="return confirm('确定要归还《{{ record.book.title }}》吗？')">
+                                            <i class="bi bi-check-circle"></i> 归还
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

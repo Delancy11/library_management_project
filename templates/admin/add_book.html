@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}添加图书 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-plus-circle"></i> 添加图书</h2>
+        <p class="text-muted">添加新的图书到系统中</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-book"></i> 图书信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.title.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.quantity.label(class="form-label") }}
+                            {{ form.quantity(class="form-control") }}
+                            {% if form.quantity.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.quantity.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.author.label(class="form-label") }}
+                            {{ form.author(class="form-control") }}
+                            {% if form.author.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.author.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.isbn.label(class="form-label") }}
+                            {{ form.isbn(class="form-control") }}
+                            {% if form.isbn.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.isbn.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.category_id.label(class="form-label") }}
+                            {{ form.category_id(class="form-select") }}
+                            {% if form.category_id.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.category_id.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.publisher.label(class="form-label") }}
+                            {{ form.publisher(class="form-control") }}
+                            {% if form.publisher.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.publisher.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.publication_date.label(class="form-label") }}
+                            {{ form.publication_date(class="form-control") }}
+                            {% if form.publication_date.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.publication_date.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">
+                                {% for error in form.description.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_books') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回列表
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> 添加图书
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> 添加说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>必填项</h6>
+                <ul>
+                    <li><strong>书名：</strong>图书的完整标题</li>
+                    <li><strong>作者：</strong>作者姓名</li>
+                    <li><strong>ISBN：</strong>国际标准书号，确保唯一性</li>
+                    <li><strong>分类：</strong>选择合适的图书分类</li>
+                    <li><strong>数量：</strong>图书馆藏书数量</li>
+                </ul>
+
+                <h6>选填项</h6>
+                <ul>
+                    <li><strong>出版社：</strong>图书出版机构</li>
+                    <li><strong>出版日期：</strong>图书出版年份</li>
+                    <li><strong>描述：</strong>图书简介和描述</li>
+                </ul>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>提示：</strong>系统会自动设置可借数量等于总数。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

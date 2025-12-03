@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}添加分类 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-plus-circle"></i> 添加分类</h2>
+        <p class="text-muted">创建新的图书分类</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-tags"></i> 分类信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.name.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">分类名称在系统中必须唯一</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">
+                                {% for error in form.description.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">简要描述该分类的用途和包含的图书类型</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_categories') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回列表
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> 添加分类
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> 添加说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>分类作用</h6>
+                <p>图书分类帮助：</p>
+                <ul>
+                    <li>组织和管理图书资源</li>
+                    <li>提供精确的搜索过滤</li>
+                    <li>帮助用户快速找到所需图书</li>
+                    <li>生成分类统计报告</li>
+                </ul>
+
+                <h6>命名建议</h6>
+                <ul>
+                    <li>使用简短明确的名称</li>
+                    <li>避免重复和冲突</li>
+                    <li>符合学术或行业规范</li>
+                    <li>便于用户理解和选择</li>
+                </ul>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>示例：</strong> 文学小说、科学技术、经济管理、教育学习、艺术设计等
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="bi bi-exclamation-triangle"></i> 注意事项</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>分类名称不能重复</li>
+                    <li>创建后可以修改名称和描述</li>
+                    <li>只有空分类才能删除</li>
+                    <li>删除分类前需要移走所有图书</li>
+                    <li>建议先创建常用的分类类别</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

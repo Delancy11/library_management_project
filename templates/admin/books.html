@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}图书管理 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-book"></i> 图书管理</h2>
+        <p class="text-muted">管理系统中的所有图书信息</p>
+    </div>
+</div>
+
+<!-- 操作栏 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="search" placeholder="搜索书名、作者或ISBN..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="category">
+                            <option value="">所有分类</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if request.args.get('category') == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="btn-group w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> 搜索
+                            </button>
+                            <a href="{{ url_for('add_book') }}" class="btn btn-success">
+                                <i class="bi bi-plus-circle"></i> 添加图书
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 图书列表 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-book-fill"></i> 图书列表</h5>
+                <span class="badge bg-primary">共 {{ books.total }} 本图书</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>书名</th>
+                                <th>作者</th>
+                                <th>ISBN</th>
+                                <th>分类</th>
+                                <th>库存</th>
+                                <th>可借</th>
+                                <th>出版信息</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for book in books.items %}
+                                <tr>
+                                    <td>{{ book.id }}</td>
+                                    <td>
+                                        <strong>{{ book.title }}</strong>
+                                    </td>
+                                    <td>{{ book.author }}</td>
+                                    <td>{{ book.isbn }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ book.category.name }}</span>
+                                    </td>
+                                    <td>{{ book.quantity }}</td>
+                                    <td>
+                                        {% if book.available_quantity > 0 %}
+                                            <span class="badge bg-success">{{ book.available_quantity }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ book.available_quantity }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {% if book.publisher %}
+                                                {{ book.publisher }}<br>
+                                            {% endif %}
+                                            {% if book.publication_date %}
+                                                {{ book.publication_date.strftime('%Y') }}
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if book.available_quantity > 0 %}
+                                            <span class="badge bg-success">可借阅</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">已借完</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-sm btn-warning">
+                                                <i class="bi bi-pencil"></i> 编辑
+                                            </a>
+                                            <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ book.id }}, '{{ book.title }}')">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if not books.items %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-book" style="font-size: 4rem; color: #ccc;"></i>
+                        <h4 class="mt-3">暂无图书</h4>
+                        <p class="text-muted">
+                            {% if request.args.get('search') or request.args.get('category') %}
+                                没有找到符合条件的图书，请尝试其他搜索条件。
+                            {% else %}
+                                图书库中还没有图书，
+                                <a href="{{ url_for('add_book') }}">立即添加第一本书</a>
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分页 -->
+{% if books.pages > 1 %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="图书分页">
+            <ul class="pagination justify-content-center">
+                {% if books.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_books', page=books.prev_num, search=request.args.get('search'), category=request.args.get('category')) }}">
+                            <i class="bi bi-chevron-left"></i> 上一页
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for page_num in books.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != books.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_books', page=page_num, search=request.args.get('search'), category=request.args.get('category')) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if books.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_books', page=books.next_num, search=request.args.get('search'), category=request.args.get('category')) }}">
+                            下一页 <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endif %}
+
+<!-- 统计信息 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <p class="mb-0">
+                    显示第 {{ (books.page - 1) * books.per_page + 1 }} -
+                    {{ books.page * books.per_page if books.page * books.per_page < books.total else books.total }}
+                    本图书，共 {{ books.total }} 本图书
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> 快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-speedometer2"></i> 仪表板
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-people"></i> 用户管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_categories') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-tags"></i> 分类管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_borrow_records') }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-clock-history"></i> 借阅记录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 确认删除图书
+function confirmDelete(bookId, bookTitle) {
+    if (confirm('确定要删除图书《' + bookTitle + '》吗？\n\n警告：删除后相关的借阅记录也将被删除，此操作不可恢复！')) {
+        window.location.href = '{{ url_for("delete_book", book_id=0) }}'.replace('0', bookId);
+    }
+}
+
+// 搜索功能
+document.querySelector('form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const search = document.querySelector('input[name="search"]').value;
+    const category = document.querySelector('select[name="category"]').value;
+    let url = '{{ url_for("admin_books") }}?';
+    if (search) url += 'search=' + encodeURIComponent(search) + '&';
+    if (category) url += 'category=' + category;
+    window.location.href = url;
+});
+</script>
+{% endblock %}

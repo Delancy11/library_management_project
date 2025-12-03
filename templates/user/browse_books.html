@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}图书浏览 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-book"></i> 图书浏览</h2>
+        <p class="text-muted">浏览和借阅您感兴趣的图书</p>
+    </div>
+</div>
+
+<!-- 搜索和筛选 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">搜索图书</label>
+                        <input type="text" class="form-control" id="search" name="search"
+                               value="{{ search }}" placeholder="输入书名或作者...">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category_id" class="form-label">分类筛选</label>
+                        <select class="form-select" id="category_id" name="category_id">
+                            <option value="">所有分类</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> 搜索
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 图书列表 -->
+<div class="row">
+    {% if books.items %}
+        {% for book in books.items %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">{{ book.category.name }}</span>
+                    <small class="text-muted">库存: {{ book.available_quantity }}/{{ book.quantity }}</small>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ book.title }}</h5>
+                    <p class="card-text text-muted">
+                        <i class="bi bi-person"></i> {{ book.author }}
+                        {% if book.publisher %}<br>
+                        <i class="bi bi-building"></i> {{ book.publisher }}
+                        {% endif %}
+                    </p>
+                    {% if book.description %}
+                    <p class="card-text">{{ book.description[:100] }}{% if book.description|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    <div class="text-muted small">
+                        <i class="bi bi-upc"></i> ISBN: {{ book.isbn }}
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        {% if book.publication_date %}
+                        出版: {{ book.publication_date.strftime('%Y') }}
+                        {% endif %}
+                    </small>
+                    {% if book.available_quantity > 0 %}
+                        <a href="{{ url_for('borrow_book', book_id=book.id) }}"
+                           class="btn btn-success btn-sm"
+                           onclick="return confirm('确定要借阅《{{ book.title }}》吗？')">
+                            <i class="bi bi-book"></i> 借阅
+                        </a>
+                    {% else %}
+                        <button class="btn btn-secondary btn-sm" disabled>
+                            <i class="bi bi-x-circle"></i> 暂无库存
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">暂无图书</h4>
+                <p class="text-muted">
+                    {% if search or selected_category %}
+                        没有找到符合条件的图书，请尝试其他搜索条件。
+                    {% else %}
+                        图书库中暂时没有图书，请联系管理员添加图书。
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- 分页 -->
+{% if books.pages > 1 %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="图书分页">
+            <ul class="pagination justify-content-center">
+                {% if books.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('browse_books', page=books.prev_num, search=search, category_id=selected_category) }}">
+                            <i class="bi bi-chevron-left"></i> 上一页
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for page_num in books.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != books.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('browse_books', page=page_num, search=search, category_id=selected_category) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if books.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('browse_books', page=books.next_num, search=search, category_id=selected_category) }}">
+                            下一页 <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endif %}
+
+<!-- 统计信息 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <p class="mb-0">
+                    显示第 {{ (books.page - 1) * 10 + 1 }} - {{ books.page * 10 }} 条记录，
+                    共 {{ books.total }} 本图书
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

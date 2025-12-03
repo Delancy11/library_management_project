@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}分类管理 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-tags"></i> 分类管理</h2>
+        <p class="text-muted">管理系统中的图书分类</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5><i class="bi bi-list"></i> 分类列表</h5>
+                    <p class="text-muted mb-0">共 {{ categories|length }} 个分类</p>
+                </div>
+                <a href="{{ url_for('add_category') }}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> 添加分类
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for category in categories %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">
+                        <i class="bi bi-book-fill"></i> {{ category.books|length }} 本书
+                    </span>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('edit_category', category_id=category.id) }}" class="btn btn-sm btn-outline-warning">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if not category.books %}
+                            <a href="{{ url_for('delete_category', category_id=category.id) }}" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('确定要删除分类《{{ category.name }}》吗？')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ category.name }}</h5>
+                    {% if category.description %}
+                        <p class="card-text">{{ category.description }}</p>
+                    {% else %}
+                        <p class="card-text text-muted">暂无描述</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        创建于 {{ category.created_at.strftime('%Y-%m-%d') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% if not categories %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-tags" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">暂无分类</h4>
+                <p class="text-muted">系统中还没有图书分类，<a href="{{ url_for('add_category') }}">立即添加第一个分类</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 分类统计 -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ categories|length }}</h4>
+                        <p>总分类数</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-tags-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ categories|selectattr('books')|list|length }}</h4>
+                        <p>有图书的分类</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-book-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ categories|selectattr('books')|map(attribute='books')|map('length')|sum }}</h4>
+                        <p>总图书数</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-collection-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> 快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-speedometer2"></i> 仪表板
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-people"></i> 用户管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_books') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-book"></i> 图书管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_borrow_records') }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-clock-history"></i> 借阅记录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
