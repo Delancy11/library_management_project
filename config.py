@@ -2,7 +2,8 @@ import os
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key-here'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'mysql+pymysql://root:123456@localhost/library_management'
+    # 使用SQLite数据库，避免MySQL配置问题
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///library.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # 管理员配置

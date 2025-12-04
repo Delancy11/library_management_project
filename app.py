@@ -349,9 +349,38 @@ def delete_category(category_id):
     category = Category.query.get_or_404(category_id)
     # 检查是否有关联的图书
     if category.books:
-        flash('该分类下还有图书，无法删除！', 'danger')
+        book_count = len(category.books)
+        flash(f'该分类下还有 {book_count} 本图书，无法删除！请先删除或移动这些图书。', 'danger')
         return redirect(url_for('admin_categories'))
 
+    db.session.delete(category)
+    db.session.commit()
+    flash('分类删除成功！', 'success')
+    return redirect(url_for('admin_categories'))
+
+@app.route('/admin/categories/force-delete/<int:category_id>')
+@login_required
+def force_delete_category(category_id):
+    if not isinstance(current_user, Admin):
+        abort(403)
+
+    category = Category.query.get_or_404(category_id)
+
+    if category.books:
+        # 找一个默认分类（通常是第一个分类）
+        default_category = Category.query.filter(Category.id != category_id).first()
+        if not default_category:
+            flash('没有其他分类可以接收这些图书，请先创建一个新分类！', 'danger')
+            return redirect(url_for('admin_categories'))
+
+        # 将所有关联的图书移动到默认分类
+        book_count = len(category.books)
+        for book in category.books:
+            book.category_id = default_category.id
+
+        flash(f'已将 {book_count} 本图书移动到分类 "{default_category.name}"。', 'warning')
+
+    # 删除分类
     db.session.delete(category)
     db.session.commit()
     flash('分类删除成功！', 'success')
@@ -368,7 +397,7 @@ def admin_borrow_records():
     records = BorrowRecord.query.order_by(BorrowRecord.created_at.desc()).paginate(
         page=page, per_page=10, error_out=False
     )
-    return render_template('admin/borrow_records.html', records=records)
+    return render_template('admin/borrow_records.html', records=records, datetime=datetime)
 
 # 用户图书浏览
 @app.route('/books')

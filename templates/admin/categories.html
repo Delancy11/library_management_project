@@ -39,10 +39,33 @@
                             <i class="bi bi-pencil"></i>
                         </a>
                         {% if not category.books %}
+                            <!-- 分类没有图书时显示普通删除按钮 -->
                             <a href="{{ url_for('delete_category', category_id=category.id) }}" class="btn btn-sm btn-outline-danger"
                                onclick="return confirm('确定要删除分类《{{ category.name }}》吗？')">
                                 <i class="bi bi-trash"></i>
                             </a>
+                        {% else %}
+                            <!-- 分类有图书时显示强制删除按钮 -->
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-danger dropdown-toggle"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item text-danger"
+                                           href="{{ url_for('force_delete_category', category_id=category.id) }}"
+                                           onclick="return confirm('警告：该分类有 {{ category.books|length }} 本图书！\n\n删除分类会将所有图书移动到其他分类。\n\n确定要继续吗？')">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            强制删除（移动图书）
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><span class="dropdown-item text-muted small">当前有 {{ category.books|length }} 本图书在此分类中</span></li>
+                                </ul>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -161,4 +184,14 @@
         </div>
     </div>
 </div>
+
+<script>
+// 初始化工具提示
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+});
+</script>
 {% endblock %}
