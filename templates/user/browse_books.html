@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchParams = new URLSearchParams(window.location.search);
     const searchQuery = searchParams.get('search');
     const categoryQuery = searchParams.get('category_id');
-    const bookCount = {{ books.total }};
+    const bookCount = {{ books.total if books.total is defined else 0 }};
 
     // 如果有搜索查询但没有结果，显示提示框
     if ((searchQuery && searchQuery.trim()) || categoryQuery) {

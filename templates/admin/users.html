@@ -219,6 +219,62 @@
 
 {% block scripts %}
 <script>
+// 检查搜索结果并显示提示
+document.addEventListener('DOMContentLoaded', function() {
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchQuery = searchParams.get('search');
+    const userCount = {{ users.total }};
+
+    // 如果有搜索查询但没有结果，显示提示框
+    if (searchQuery && searchQuery.trim() && userCount === 0) {
+        showAlert('搜索结果', `没有找到包含 "${searchQuery}" 的用户，请尝试其他关键词。`, 'warning');
+    }
+});
+
+// 显示提示框
+function showAlert(title, message, type = 'info') {
+    // 创建模态框HTML
+    const modalHtml = `
+        <div class="modal fade" id="searchAlertModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-${type} text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                            ${title}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-${type}" data-bs-dismiss="modal">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 如果模态框已存在，先移除
+    const existingModal = document.getElementById('searchAlertModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 添加新模态框到页面
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('searchAlertModal'));
+    modal.show();
+
+    // 模态框关闭后移除DOM
+    document.getElementById('searchAlertModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
 // 显示用户详情
 function showUserDetails(userId) {
     // 这里可以通过AJAX获取用户详细信息

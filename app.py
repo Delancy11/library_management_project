@@ -453,6 +453,111 @@ def admin_borrow_records():
     )
     return render_template('admin/borrow_records.html', records=records, datetime=datetime)
 
+@app.route('/admin/records/return/<int:record_id>', methods=['POST'])
+@login_required
+def admin_return_book(record_id):
+    """管理员标记图书归还"""
+    if not isinstance(current_user, Admin):
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+
+    try:
+        # 获取借阅记录
+        record = BorrowRecord.query.get_or_404(record_id)
+
+        # 检查是否已经归还
+        if record.return_date is not None:
+            return jsonify({
+                'success': False,
+                'message': f'该图书已于{record.return_date.strftime("%Y-%m-%d %H:%M")}归还'
+            }), 400
+
+        # 获取图书并更新可借数量
+        book = record.book
+        if book.available_quantity < book.quantity:
+            book.available_quantity += 1
+
+        # 更新借阅记录
+        record.return_date = datetime.utcnow()
+        record.status = 'returned'
+
+        # 提交到数据库
+        db.session.commit()
+
+        # 记录操作日志
+        app.logger.info(f'管理员 {current_user.username} 标记归还：用户 {record.user.username} 归还图书 {book.title}')
+
+        return jsonify({
+            'success': True,
+            'message': f'《{book.title}》已成功标记为归还',
+            'return_date': record.return_date.strftime('%Y-%m-%d %H:%M'),
+            'new_status': 'returned',
+            'book_available': book.available_quantity
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'标记归还失败: {str(e)}')
+        return jsonify({'success': False, 'message': '操作失败，请重试'}), 500
+
+@app.route('/admin/records/batch-return', methods=['POST'])
+@login_required
+def admin_batch_return_books():
+    """管理员批量标记图书归还"""
+    if not isinstance(current_user, Admin):
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+
+    try:
+        data = request.get_json()
+        record_ids = data.get('record_ids', [])
+
+        if not record_ids:
+            return jsonify({'success': False, 'message': '请选择要归还的记录'}), 400
+
+        success_count = 0
+        error_messages = []
+
+        for record_id in record_ids:
+            try:
+                record = BorrowRecord.query.get(record_id)
+                if not record:
+                    error_messages.append(f'记录ID {record_id} 不存在')
+                    continue
+
+                if record.return_date is not None:
+                    error_messages.append(f'《{record.book.title}》已归还，跳过')
+                    continue
+
+                # 更新图书数量
+                if record.book.available_quantity < record.book.quantity:
+                    record.book.available_quantity += 1
+
+                # 更新借阅记录
+                record.return_date = datetime.utcnow()
+                record.status = 'returned'
+
+                success_count += 1
+
+            except Exception as e:
+                error_messages.append(f'处理记录ID {record_id} 时出错: {str(e)}')
+
+        # 提交所有更改
+        db.session.commit()
+
+        # 记录批量操作日志
+        app.logger.info(f'管理员 {current_user.username} 批量归还：成功 {success_count} 条记录')
+
+        return jsonify({
+            'success': True,
+            'message': f'成功标记 {success_count} 条记录为归还',
+            'success_count': success_count,
+            'errors': error_messages
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'批量归还失败: {str(e)}')
+        return jsonify({'success': False, 'message': '批量操作失败，请重试'}), 500
+
 # 用户图书浏览
 @app.route('/books')
 @login_required
