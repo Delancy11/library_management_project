@@ -10,34 +10,132 @@
     </div>
 </div>
 
-<!-- 操作栏 -->
+<!-- 增强搜索栏 -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-funnel"></i> 智能搜索与筛选</h6>
+            </div>
             <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" name="search" placeholder="搜索书名、作者或ISBN..." value="{{ request.args.get('search', '') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" name="category">
-                            <option value="">所有分类</option>
-                            {% for category in categories %}
-                                <option value="{{ category.id }}" {% if request.args.get('category') == category.id|string %}selected{% endif %}>{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="btn-group w-100">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-search"></i> 搜索
-                            </button>
-                            <a href="{{ url_for('add_book') }}" class="btn btn-success">
-                                <i class="bi bi-plus-circle"></i> 添加图书
-                            </a>
+                <form id="searchForm" method="GET" class="mb-3">
+                    <div class="row g-3">
+                        <!-- 主搜索框 -->
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="searchInput" name="search"
+                                       placeholder="搜索书名、作者、ISBN或描述..."
+                                       value="{{ current_search or '' }}"
+                                       autocomplete="off">
+                                <label for="searchInput">
+                                    <i class="bi bi-search text-primary"></i> 搜索图书
+                                </label>
+                                <!-- 搜索建议下拉框 -->
+                                <div id="searchSuggestions" class="dropdown-menu shadow-lg" style="max-height: 300px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+
+                        <!-- 分类筛选 -->
+                        <div class="col-lg-2 col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="categorySelect" name="category">
+                                    <option value="">所有分类</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}"
+                                                {% if current_category == category.id %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="categorySelect">
+                                    <i class="bi bi-tags text-primary"></i> 分类
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 状态筛选 -->
+                        <div class="col-lg-2 col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="statusSelect" name="status">
+                                    <option value="">全部状态</option>
+                                    <option value="available" {% if current_status == 'available' %}selected{% endif %}>
+                                        可借阅
+                                    </option>
+                                    <option value="borrowed" {% if current_status == 'borrowed' %}selected{% endif %}>
+                                        已借出
+                                    </option>
+                                </select>
+                                <label for="statusSelect">
+                                    <i class="bi bi-check-circle text-primary"></i> 状态
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 排序选项 -->
+                        <div class="col-lg-2 col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="sortSelect" name="sort">
+                                    <option value="title" {% if current_sort == 'title' %}selected{% endif %}>
+                                        按书名排序
+                                    </option>
+                                    <option value="author" {% if current_sort == 'author' %}selected{% endif %}>
+                                        按作者排序
+                                    </option>
+                                    <option value="isbn" {% if current_sort == 'isbn' %}selected{% endif %}>
+                                        按ISBN排序
+                                    </option>
+                                    <option value="added_date" {% if current_sort == 'added_date' %}selected{% endif %}>
+                                        按添加时间排序
+                                    </option>
+                                </select>
+                                <label for="sortSelect">
+                                    <i class="bi bi-sort-down text-primary"></i> 排序
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="col-lg-2 col-md-4">
+                            <div class="btn-group w-100">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> 搜索
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="clearSearch">
+                                    <i class="bi bi-x-circle"></i> 清除
+                                </button>
+                                <a href="{{ url_for('add_book') }}" class="btn btn-success">
+                                    <i class="bi bi-plus-circle"></i> 添加
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
+
+                    <!-- 搜索状态提示 -->
+                    {% if current_search or current_category or current_status %}
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="alert alert-info d-flex justify-content-between align-items-center py-2">
+                                <small class="mb-0">
+                                    <i class="bi bi-info-circle"></i>
+                                    当前搜索条件：
+                                    {% if current_search %}
+                                        <span class="badge bg-primary">搜索: "{{ current_search }}"</span>
+                                    {% endif %}
+                                    {% if current_category %}
+                                        <span class="badge bg-success">
+                                            分类: {{ categories|selectattr('id', 'equalto', current_category)|map(attribute='name')|first }}
+                                        </span>
+                                    {% endif %}
+                                    {% if current_status %}
+                                        <span class="badge bg-warning">状态: {{ '可借阅' if current_status == 'available' else '已借出' }}</span>
+                                    {% endif %}
+                                </small>
+                                <small class="text-muted">找到 {{ books.total }} 条结果</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </form>
             </div>
         </div>
     </div>
@@ -140,49 +238,65 @@
     </div>
 </div>
 
-<!-- 分页 -->
+<!-- 增强分页 -->
 {% if books.pages > 1 %}
 <div class="row">
     <div class="col-12">
-        <nav aria-label="图书分页">
-            <ul class="pagination justify-content-center">
-                {% if books.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_books', page=books.prev_num, search=request.args.get('search'), category=request.args.get('category')) }}">
-                            <i class="bi bi-chevron-left"></i> 上一页
-                        </a>
-                    </li>
-                {% endif %}
+        <div class="card">
+            <div class="card-body py-2">
+                <nav aria-label="图书分页">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">
+                                显示第 {{ (books.page - 1) * books.per_page + 1 }} -
+                                {{ books.page * books.per_page if books.page * books.per_page < books.total else books.total }}
+                                条，共 {{ books.total }} 条记录
+                            </span>
+                        </div>
+                        <ul class="pagination mb-0">
+                            {% if books.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin_books', page=books.prev_num, search=current_search, category=current_category, status=current_status, sort=current_sort) }}">
+                                        <i class="bi bi-chevron-left"></i> 上一页
+                                    </a>
+                                </li>
+                            {% endif %}
 
-                {% for page_num in books.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num != books.page %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_books', page=page_num, search=request.args.get('search'), category=request.args.get('category')) }}">
-                                    {{ page_num }}
-                                </a>
-                            </li>
-                        {% else %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_num }}</span>
-                            </li>
-                        {% endif %}
-                    {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">...</span>
-                        </li>
-                    {% endif %}
-                {% endfor %}
+                            {% for page_num in books.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != books.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('admin_books', page=page_num, search=current_search, category=current_category, status=current_status, sort=current_sort) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
 
-                {% if books.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_books', page=books.next_num, search=request.args.get('search'), category=request.args.get('category')) }}">
-                            下一页 <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
+                            {% if books.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin_books', page=books.next_num, search=current_search, category=current_category, status=current_status, sort=current_sort) }}">
+                                        下一页 <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                        <div>
+                            <span class="text-muted">第 {{ books.page }} / {{ books.pages }} 页</span>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -240,6 +354,236 @@
 
 {% block scripts %}
 <script>
+// 搜索功能增强
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+    const searchForm = document.getElementById('searchForm');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const categorySelect = document.getElementById('categorySelect');
+    const statusSelect = document.getElementById('statusSelect');
+    const sortSelect = document.getElementById('sortSelect');
+
+    // 检查搜索结果并显示提示
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchQuery = searchParams.get('search');
+    const categoryQuery = searchParams.get('category');
+    const statusQuery = searchParams.get('status');
+    const bookCount = {{ books.total }};
+
+    // 如果有搜索查询但没有结果，显示提示框
+    if ((searchQuery && searchQuery.trim()) || categoryQuery || statusQuery) {
+        if (bookCount === 0) {
+            let message = '没有找到符合条件的图书，请尝试其他搜索条件。';
+            if (searchQuery && (categoryQuery || statusQuery)) {
+                message = `没有找到包含 "${searchQuery}" 且符合其他筛选条件的图书，请尝试其他关键词或筛选条件。`;
+            } else if (searchQuery) {
+                message = `没有找到包含 "${searchQuery}" 的图书，请尝试其他关键词。`;
+            } else if (categoryQuery || statusQuery) {
+                message = '没有找到符合当前筛选条件的图书，请尝试其他选项。';
+            }
+            showAlert('搜索结果', message, 'warning');
+        }
+    }
+
+    // 自动搜索建议功能
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+
+        clearTimeout(searchTimeout);
+
+        if (query.length >= 2) {
+            searchTimeout = setTimeout(() => {
+                fetchSearchSuggestions(query);
+            }, 300);
+        } else {
+            searchSuggestions.innerHTML = '';
+            searchSuggestions.classList.remove('show');
+        }
+    });
+
+    // 点击其他地方隐藏搜索建议
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
+            searchSuggestions.innerHTML = '';
+            searchSuggestions.classList.remove('show');
+        }
+    });
+
+    // 键盘导航搜索建议
+    searchInput.addEventListener('keydown', function(e) {
+        const items = searchSuggestions.querySelectorAll('.dropdown-item');
+        if (!items.length) return;
+
+        let currentIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            items[currentIndex]?.classList.remove('active');
+            currentIndex = (currentIndex + 1) % items.length;
+            items[currentIndex].classList.add('active');
+            items[currentIndex].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            items[currentIndex]?.classList.remove('active');
+            currentIndex = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
+            items[currentIndex].classList.add('active');
+            items[currentIndex].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && currentIndex >= 0) {
+            e.preventDefault();
+            items[currentIndex].click();
+        } else if (e.key === 'Escape') {
+            searchSuggestions.innerHTML = '';
+            searchSuggestions.classList.remove('show');
+        }
+    });
+
+    // 清除搜索条件
+    clearSearchBtn.addEventListener('click', function() {
+        searchForm.reset();
+        searchForm.submit();
+    });
+
+    // 自动提交搜索（当选择器改变时）
+    [categorySelect, statusSelect, sortSelect].forEach(element => {
+        element.addEventListener('change', function() {
+            searchForm.submit();
+        });
+    });
+
+    // 全局键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+F 聚焦搜索框
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
+        // Escape 清除搜索
+        if (e.key === 'Escape' && document.activeElement === searchInput) {
+            clearSearchBtn.click();
+        }
+    });
+
+    // 保存搜索历史到 localStorage
+    saveSearchHistory();
+    displaySearchHistory();
+});
+
+// 获取搜索建议
+async function fetchSearchSuggestions(query) {
+    try {
+        const response = await fetch(`/api/search-suggestions?q=${encodeURIComponent(query)}`);
+        const suggestions = await response.json();
+
+        displaySearchSuggestions(suggestions);
+    } catch (error) {
+        console.error('获取搜索建议失败:', error);
+    }
+}
+
+// 显示搜索建议
+function displaySearchSuggestions(suggestions) {
+    const searchSuggestions = document.getElementById('searchSuggestions');
+
+    if (!suggestions.length) {
+        searchSuggestions.innerHTML = `
+            <div class="dropdown-item text-muted">
+                <i class="bi bi-info-circle"></i> 没有相关建议
+            </div>
+        `;
+    } else {
+        searchSuggestions.innerHTML = suggestions.map(item => `
+            <div class="dropdown-item" onclick="selectSuggestion('${item.title}', '${item.type}')">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-${getSuggestionIcon(item.type)} me-2"></i>
+                    <div>
+                        <div class="fw-bold">${item.title}</div>
+                        <small class="text-muted">${item.subtitle}</small>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    searchSuggestions.classList.add('show');
+}
+
+// 选择搜索建议
+function selectSuggestion(title, type) {
+    const searchInput = document.getElementById('searchInput');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+
+    searchInput.value = title;
+    searchSuggestions.innerHTML = '';
+    searchSuggestions.classList.remove('show');
+
+    // 自动提交搜索
+    document.getElementById('searchForm').submit();
+}
+
+// 获取建议图标
+function getSuggestionIcon(type) {
+    const icons = {
+        'title': 'book',
+        'author': 'person',
+        'isbn': 'upc-scan',
+        'category': 'tags'
+    };
+    return icons[type] || 'search';
+}
+
+// 保存搜索历史
+function saveSearchHistory() {
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchQuery = searchParams.get('search');
+
+    if (searchQuery && searchQuery.trim()) {
+        let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        history = history.filter(item => item !== searchQuery);
+        history.unshift(searchQuery);
+        history = history.slice(0, 10); // 只保留最近10条
+        localStorage.setItem('searchHistory', JSON.stringify(history));
+    }
+}
+
+// 显示搜索历史
+function displaySearchHistory() {
+    const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+    // 这里可以在搜索框下方显示搜索历史
+}
+
+// 显示提示框
+function showAlert(title, message, type = 'info') {
+    // 创建提示框HTML
+    const toastHtml = `
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11">
+            <div class="toast show" role="alert">
+                <div class="toast-header bg-${type} text-white">
+                    <i class="bi bi-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    <strong class="me-auto">${title}</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 添加到页面
+    document.body.insertAdjacentHTML('beforeend', toastHtml);
+
+    // 3秒后自动移除
+    setTimeout(() => {
+        const toast = document.querySelector('.toast-container:last-child');
+        if (toast) {
+            toast.remove();
+        }
+    }, 3000);
+}
+
 // 确认删除图书
 function confirmDelete(bookId, bookTitle) {
     if (confirm('确定要删除图书《' + bookTitle + '》吗？\n\n警告：删除后相关的借阅记录也将被删除，此操作不可恢复！')) {
@@ -247,15 +591,53 @@ function confirmDelete(bookId, bookTitle) {
     }
 }
 
-// 搜索功能
-document.querySelector('form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const search = document.querySelector('input[name="search"]').value;
-    const category = document.querySelector('select[name="category"]').value;
-    let url = '{{ url_for("admin_books") }}?';
-    if (search) url += 'search=' + encodeURIComponent(search) + '&';
-    if (category) url += 'category=' + category;
-    window.location.href = url;
-});
+// 高级搜索功能
+function toggleAdvancedSearch() {
+    const advancedSection = document.getElementById('advancedSearch');
+    if (advancedSection.style.display === 'none') {
+        advancedSection.style.display = 'block';
+    } else {
+        advancedSection.style.display = 'none';
+    }
+}
+
+// 实时搜索（防抖）
+let realTimeSearchTimeout;
+function setupRealTimeSearch() {
+    const searchInput = document.getElementById('searchInput');
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(realTimeSearchTimeout);
+
+        realTimeSearchTimeout = setTimeout(() => {
+            if (this.value.trim().length >= 3) {
+                // 执行实时搜索
+                performRealTimeSearch(this.value.trim());
+            }
+        }, 500);
+    });
+}
+
+// 执行实时搜索
+async function performRealTimeSearch(query) {
+    try {
+        const response = await fetch(`/api/realtime-search?q=${encodeURIComponent(query)}`);
+        const results = await response.json();
+
+        // 更新搜索结果计数
+        updateSearchCount(results.count);
+
+    } catch (error) {
+        console.error('实时搜索失败:', error);
+    }
+}
+
+// 更新搜索结果计数
+function updateSearchCount(count) {
+    const countElement = document.getElementById('searchResultCount');
+    if (countElement) {
+        countElement.textContent = `找到 ${count} 条结果`;
+    }
+}
 </script>
 {% endblock %}

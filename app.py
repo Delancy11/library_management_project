@@ -219,11 +219,65 @@ def admin_books():
     if not isinstance(current_user, Admin):
         abort(403)
 
+    # 获取搜索和筛选参数
     page = request.args.get('page', 1, type=int)
-    books = Book.query.paginate(
+    search = request.args.get('search', '').strip()
+    category_id = request.args.get('category', '', type=int)
+    status = request.args.get('status', '')  # all, available, borrowed
+    sort_by = request.args.get('sort', 'title')  # title, author, added_date
+
+    # 构建基础查询
+    query = Book.query
+
+    # 应用搜索筛选
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            db.or_(
+                Book.title.like(search_term),
+                Book.author.like(search_term),
+                Book.isbn.like(search_term),
+                Book.description.like(search_term)
+            )
+        )
+
+    # 应用分类筛选
+    if category_id:
+        query = query.filter(Book.category_id == category_id)
+
+    # 应用状态筛选
+    if status == 'available':
+        query = query.filter(Book.available_copies > 0)
+    elif status == 'borrowed':
+        query = query.filter(Book.total_copies > Book.available_copies)
+
+    # 应用排序
+    if sort_by == 'title':
+        query = query.order_by(Book.title)
+    elif sort_by == 'author':
+        query = query.order_by(Book.author)
+    elif sort_by == 'added_date':
+        query = query.order_by(Book.id.desc())
+    elif sort_by == 'isbn':
+        query = query.order_by(Book.isbn)
+    else:
+        query = query.order_by(Book.title)
+
+    # 执行分页查询
+    books = query.paginate(
         page=page, per_page=10, error_out=False
     )
-    return render_template('admin/books.html', books=books)
+
+    # 获取所有分类用于筛选器
+    categories = Category.query.order_by(Category.name).all()
+
+    return render_template('admin/books.html',
+                         books=books,
+                         categories=categories,
+                         current_search=search,
+                         current_category=category_id,
+                         current_status=status,
+                         current_sort=sort_by)
 
 @app.route('/admin/books/add', methods=['GET', 'POST'])
 @login_required
