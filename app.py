@@ -226,7 +226,7 @@ def admin_users():
     elif sort_by == 'email':
         query = query.order_by(User.email)
     elif sort_by == 'created_date':
-        query = query.order_by(User.created_at.desc())
+        query = query.order_by(User.created_at.asc())
     else:
         query = query.order_by(User.id)
 
@@ -314,8 +314,8 @@ def admin_books():
         page=page, per_page=10, error_out=False
     )
 
-    # 获取所有分类用于筛选器
-    categories = Category.query.order_by(Category.name).all()
+    # 获取所有分类用于筛选器（排除Ubuntu和Ubuntu-22.04分类）
+    categories = Category.query.filter(Category.name.notin_(['Ubuntu', 'Ubuntu-22.04'])).order_by(Category.name).all()
 
     return render_template('admin/books.html',
                          books=books,
@@ -332,7 +332,7 @@ def add_book():
         abort(403)
 
     form = BookForm()
-    form.category_id.choices = [(c.id, c.name) for c in Category.query.all()]
+    form.category_id.choices = [(c.id, c.name) for c in Category.query.filter(Category.name.notin_(['Ubuntu', 'Ubuntu-22.04'])).all()]
 
     if form.validate_on_submit():
         if Book.query.filter_by(isbn=form.isbn.data).first():
@@ -365,7 +365,7 @@ def edit_book(book_id):
 
     book = Book.query.get_or_404(book_id)
     form = BookForm(obj=book)
-    form.category_id.choices = [(c.id, c.name) for c in Category.query.all()]
+    form.category_id.choices = [(c.id, c.name) for c in Category.query.filter(Category.name.notin_(['Ubuntu', 'Ubuntu-22.04'])).all()]
 
     if form.validate_on_submit():
         form.populate_obj(book)
@@ -397,8 +397,32 @@ def admin_categories():
     if not isinstance(current_user, Admin):
         abort(403)
 
-    categories = Category.query.all()
-    return render_template('admin/categories.html', categories=categories)
+    # 获取搜索参数
+    search = request.args.get('search', '').strip()
+
+    # 构建基础查询
+    query = Category.query
+
+    # 搜索功能
+    if search:
+        search_filter = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                Category.name.like(search_filter),
+                Category.description.like(search_filter)
+            )
+        )
+
+    # 执行查询
+    categories = query.all()
+
+    # 过滤后的分类（用于搜索结果显示）
+    filtered_categories = categories if search else None
+
+    return render_template('admin/categories.html',
+                         categories=Category.query.all(),  # 所有分类用于统计
+                         filtered_categories=filtered_categories,
+                         search=search)
 
 @app.route('/admin/categories/add', methods=['GET', 'POST'])
 @login_required
