@@ -848,16 +848,22 @@ def borrow_history():
 
     # 搜索条件
     if search:
+        search_filter = f'%{search}%'
         query = query.join(Book).filter(
-            Book.title.contains(search) | Book.author.contains(search)
+            db.or_(
+                Book.title.like(search_filter),
+                Book.author.like(search_filter),
+                Book.isbn.like(search_filter)
+            )
         )
 
     # 状态筛选
     if status == 'borrowed':
-        query = query.filter_by(status='borrowed')
+        query = query.filter(BorrowRecord.status == 'borrowed')
     elif status == 'returned':
-        query = query.filter_by(status='returned')
+        query = query.filter(BorrowRecord.status == 'returned')
     elif status == 'overdue':
+        # 查询状态为借阅中且已逾期的记录
         query = query.filter(
             BorrowRecord.status == 'borrowed',
             BorrowRecord.due_date < datetime.utcnow()
