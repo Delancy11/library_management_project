@@ -226,7 +226,7 @@ def admin_users():
     elif sort_by == 'email':
         query = query.order_by(User.email)
     elif sort_by == 'created_date':
-        query = query.order_by(User.created_at.desc())
+        query = query.order_by(User.created_at.asc())
     else:
         query = query.order_by(User.id)
 
@@ -314,8 +314,8 @@ def admin_books():
         page=page, per_page=10, error_out=False
     )
 
-    # 获取所有分类用于筛选器
-    categories = Category.query.order_by(Category.name).all()
+    # 获取所有分类用于筛选器（排除Ubuntu和Ubuntu-22.04分类）
+    categories = Category.query.filter(Category.name.notin_(['Ubuntu', 'Ubuntu-22.04'])).order_by(Category.name).all()
 
     return render_template('admin/books.html',
                          books=books,
@@ -332,7 +332,7 @@ def add_book():
         abort(403)
 
     form = BookForm()
-    form.category_id.choices = [(c.id, c.name) for c in Category.query.all()]
+    form.category_id.choices = [(c.id, c.name) for c in Category.query.filter(Category.name.notin_(['Ubuntu', 'Ubuntu-22.04'])).all()]
 
     if form.validate_on_submit():
         if Book.query.filter_by(isbn=form.isbn.data).first():
@@ -365,7 +365,7 @@ def edit_book(book_id):
 
     book = Book.query.get_or_404(book_id)
     form = BookForm(obj=book)
-    form.category_id.choices = [(c.id, c.name) for c in Category.query.all()]
+    form.category_id.choices = [(c.id, c.name) for c in Category.query.filter(Category.name.notin_(['Ubuntu', 'Ubuntu-22.04'])).all()]
 
     if form.validate_on_submit():
         form.populate_obj(book)
@@ -517,11 +517,124 @@ def admin_borrow_records():
     if not isinstance(current_user, Admin):
         abort(403)
 
+    # 获取搜索和筛选参数
     page = request.args.get('page', 1, type=int)
-    records = BorrowRecord.query.order_by(BorrowRecord.created_at.desc()).paginate(
-        page=page, per_page=10, error_out=False
-    )
-    return render_template('admin/borrow_records.html', records=records, datetime=datetime)
+    search = request.args.get('search', '').strip()
+    status = request.args.get('status', '')
+    search_type = request.args.get('search_type', 'all')
+    days = request.args.get('days', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    sort_by = request.args.get('sort_by', 'borrow_date')
+
+    # 构建基础查询
+    query = BorrowRecord.query
+
+    # 应用搜索筛选
+    if search:
+        search_term = f"%{search}%"
+        if search_type == 'book':
+            query = query.join(Book).filter(Book.title.like(search_term))
+        elif search_type == 'user':
+            query = query.join(User).filter(
+                db.or_(
+                    User.username.like(search_term),
+                    User.full_name.like(search_term),
+                    User.email.like(search_term)
+                )
+            )
+        elif search_type == 'isbn':
+            query = query.join(Book).filter(Book.isbn.like(search_term))
+        elif search_type == 'id':
+            try:
+                record_id = int(search)
+                query = query.filter(BorrowRecord.id == record_id)
+            except ValueError:
+                pass
+        else:  # all
+            query = query.join(Book, User).filter(
+                db.or_(
+                    Book.title.like(search_term),
+                    Book.author.like(search_term),
+                    Book.isbn.like(search_term),
+                    User.username.like(search_term),
+                    User.full_name.like(search_term),
+                    User.email.like(search_term)
+                )
+            )
+
+    # 应用状态筛选
+    if status == 'borrowed':
+        query = query.filter(BorrowRecord.status == 'borrowed')
+    elif status == 'returned':
+        query = query.filter(BorrowRecord.status == 'returned')
+    elif status == 'overdue':
+        query = query.filter(
+            BorrowRecord.status == 'borrowed',
+            BorrowRecord.due_date < datetime.utcnow()
+        )
+
+    # 应用时间筛选
+    if days:
+        try:
+            days_num = int(days)
+            start_date = datetime.utcnow() - timedelta(days=days_num)
+            query = query.filter(BorrowRecord.borrow_date >= start_date)
+        except ValueError:
+            pass
+    elif date_from:
+        try:
+            start_date = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(BorrowRecord.borrow_date >= start_date)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            end_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(BorrowRecord.borrow_date < end_date)
+        except ValueError:
+            pass
+
+    # 应用排序
+    if sort_by == 'borrow_date':
+        query = query.order_by(BorrowRecord.borrow_date.desc())
+    elif sort_by == 'due_date':
+        query = query.order_by(BorrowRecord.due_date.desc())
+    elif sort_by == 'return_date':
+        query = query.order_by(BorrowRecord.return_date.desc())
+    elif sort_by == 'user_name':
+        query = query.join(User).order_by(User.full_name)
+    else:
+        query = query.order_by(BorrowRecord.borrow_date.desc())
+
+    # 执行分页查询
+    records = query.paginate(page=page, per_page=10, error_out=False)
+
+    # 计算统计数据
+    all_records = records.items
+
+    # 统计逾期记录（只计算当前页）
+    overdue_count = 0
+    for record in all_records:
+        if record.is_overdue():
+            overdue_count += 1
+
+    # 统计当前借阅数量
+    borrowed_count = 0
+    returned_count = 0
+    for record in all_records:
+        if record.status == 'borrowed':
+            borrowed_count += 1
+        elif record.status == 'returned':
+            returned_count += 1
+
+    return render_template('admin/borrow_records.html',
+                         records=records,
+                         datetime=datetime,
+                         overdue_count=overdue_count,
+                         borrowed_count=borrowed_count,
+                         returned_count=returned_count)
 
 @app.route('/admin/records/return/<int:record_id>', methods=['POST'])
 @login_required

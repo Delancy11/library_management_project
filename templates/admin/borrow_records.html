@@ -1080,7 +1080,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4>{{ records.items|selectattr('status', 'equalto', 'borrowed')|list|length }}</h4>
+                        <h4>{{ borrowed_count }}</h4>
                         <p>当前借阅</p>
                     </div>
                     <div class="align-self-center">
@@ -1095,7 +1095,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4>{{ records.items|selectattr('status', 'equalto', 'returned')|list|length }}</h4>
+                        <h4>{{ returned_count }}</h4>
                         <p>已归还</p>
                     </div>
                     <div class="align-self-center">
@@ -1110,7 +1110,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4>{{ records.items|selectattr('is_overdue')|list|length }}</h4>
+                        <h4>{{ overdue_count }}</h4>
                         <p>已逾期</p>
                     </div>
                     <div class="align-self-center">
