@@ -75,6 +75,9 @@
                         <div class="col-lg-2 col-md-4">
                             <div class="form-floating">
                                 <select class="form-select" id="sortSelect" name="sort">
+                                    <option value="id" {% if current_sort == 'id' %}selected{% endif %}>
+                                        按ID排序
+                                    </option>
                                     <option value="title" {% if current_sort == 'title' %}selected{% endif %}>
                                         按书名排序
                                     </option>
@@ -351,6 +354,7 @@
     </div>
 </div>
 {% endblock %}
+
 
 {% block scripts %}
 <script>

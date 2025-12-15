@@ -224,7 +224,7 @@ def admin_books():
     search = request.args.get('search', '').strip()
     category_id = request.args.get('category', '', type=int)
     status = request.args.get('status', '')  # all, available, borrowed
-    sort_by = request.args.get('sort', 'title')  # title, author, added_date
+    sort_by = request.args.get('sort', 'id')  # id, title, author, added_date
 
     # 构建基础查询
     query = Book.query
@@ -252,7 +252,9 @@ def admin_books():
         query = query.filter(Book.total_copies > Book.available_copies)
 
     # 应用排序
-    if sort_by == 'title':
+    if sort_by == 'id':
+        query = query.order_by(Book.id)
+    elif sort_by == 'title':
         query = query.order_by(Book.title)
     elif sort_by == 'author':
         query = query.order_by(Book.author)
@@ -261,7 +263,7 @@ def admin_books():
     elif sort_by == 'isbn':
         query = query.order_by(Book.isbn)
     else:
-        query = query.order_by(Book.title)
+        query = query.order_by(Book.id)
 
     # 执行分页查询
     books = query.paginate(
