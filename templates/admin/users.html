@@ -2,6 +2,92 @@
 
 {% block title %}用户管理 - 图书管理系统{% endblock %}
 
+{% block extra_css %}
+<style>
+/* 搜索框样式增强 */
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* 搜索结果高亮 */
+mark {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 0.1em 0.2em;
+    border-radius: 0.2em;
+}
+
+/* 搜索框动画效果 */
+#search {
+    transition: all 0.3s ease;
+}
+
+#search:focus {
+    transform: translateY(-1px);
+}
+
+/* 按钮悬停效果 */
+.btn-group .btn {
+    transition: all 0.2s ease;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+}
+
+/* 状态选择器样式 */
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* 搜索结果统计样式 */
+.alert-info {
+    background-color: #e7f3ff;
+    border-color: #b6d4fe;
+    color: #052c65;
+}
+
+/* 卡片头部样式 */
+.card-header {
+    border-bottom: 2px solid #0d6efd;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* 加载动画 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
@@ -13,18 +99,94 @@
 <!-- 搜索栏 -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-search"></i> 用户搜索与筛选</h5>
+            </div>
             <div class="card-body">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-8">
-                        <input type="text" class="form-control" name="search" placeholder="搜索用户名、邮箱或姓名..." value="{{ request.args.get('search', '') }}">
+                <form method="GET" class="row g-3" id="searchForm">
+                    <!-- 搜索输入框 -->
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label for="search" class="form-label">
+                                <i class="bi bi-person-badge"></i> 关键词搜索
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text"
+                                       class="form-control"
+                                       id="search"
+                                       name="search"
+                                       placeholder="输入用户名、邮箱、姓名或手机号..."
+                                       value="{{ search or '' }}"
+                                       autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()" title="清空搜索">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">支持模糊搜索，可搜索用户名、邮箱、姓名、手机号</small>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-search"></i> 搜索用户
-                        </button>
+
+                    <!-- 状态筛选 -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="status" class="form-label">
+                                <i class="bi bi-toggle-on"></i> 用户状态
+                            </label>
+                            <select class="form-select" id="status" name="status" onchange="submitForm()">
+                                <option value="">全部状态</option>
+                                <option value="active" {% if status == 'active' %}selected{% endif %}>活跃用户</option>
+                                <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>非活跃用户</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 排序选项 -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="sort" class="form-label">
+                                <i class="bi bi-sort-down"></i> 排序方式
+                            </label>
+                            <select class="form-select" id="sort" name="sort" onchange="submitForm()">
+                                <option value="created_date" {% if sort_by == 'created_date' %}selected{% endif %}>注册时间</option>
+                                <option value="username" {% if sort_by == 'username' %}selected{% endif %}>用户名</option>
+                                <option value="email" {% if sort_by == 'email' %}selected{% endif %}>邮箱</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 搜索按钮 -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label d-block invisible">&nbsp;</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> 搜索
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="resetForm()" title="重置所有筛选">
+                                    <i class="bi bi-arrow-clockwise"></i> 重置
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </form>
+
+                <!-- 搜索结果统计 -->
+                {% if search or status %}
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    {% if search %}
+                        搜索关键词：<strong>"{{ search }}"</strong>
+                    {% endif %}
+                    {% if status %}
+                        {% if status == 'active' %}状态：活跃用户{% elif status == 'inactive' %}状态：非活跃用户{% endif %}
+                    {% endif %}
+                    - 找到 <strong>{{ users.total }}</strong> 个用户
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -109,7 +271,7 @@
             <ul class="pagination justify-content-center">
                 {% if users.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_users', page=users.prev_num, search=request.args.get('search')) }}">
+                        <a class="page-link" href="{{ url_for('admin_users', page=users.prev_num, search=search, status=status, sort_by=sort_by) }}">
                             <i class="bi bi-chevron-left"></i> 上一页
                         </a>
                     </li>
@@ -119,7 +281,7 @@
                     {% if page_num %}
                         {% if page_num != users.page %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_users', page=page_num, search=request.args.get('search')) }}">
+                                <a class="page-link" href="{{ url_for('admin_users', page=page_num, search=search, status=status, sort_by=sort_by) }}">
                                     {{ page_num }}
                                 </a>
                             </li>
@@ -137,7 +299,7 @@
 
                 {% if users.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_users', page=users.next_num, search=request.args.get('search')) }}">
+                        <a class="page-link" href="{{ url_for('admin_users', page=users.next_num, search=search, status=status, sort_by=sort_by) }}">
                             下一页 <i class="bi bi-chevron-right"></i>
                         </a>
                     </li>
@@ -229,7 +391,87 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchQuery && searchQuery.trim() && userCount === 0) {
         showAlert('搜索结果', `没有找到包含 "${searchQuery}" 的用户，请尝试其他关键词。`, 'warning');
     }
+
+    // 自动聚焦搜索框（如果有搜索参数）
+    if (searchQuery) {
+        document.getElementById('search').focus();
+        document.getElementById('search').select();
+    }
 });
+
+// 清空搜索框
+function clearSearch() {
+    const searchInput = document.getElementById('search');
+    searchInput.value = '';
+    searchInput.focus();
+}
+
+// 提交表单
+function submitForm() {
+    document.getElementById('searchForm').submit();
+}
+
+// 重置所有筛选条件
+function resetForm() {
+    // 清空搜索框
+    document.getElementById('search').value = '';
+    // 重置筛选条件
+    document.getElementById('status').value = '';
+    document.getElementById('sort').value = 'created_date';
+    // 提交表单
+    submitForm();
+}
+
+// 实时搜索功能（输入时自动搜索，延迟执行）
+let searchTimeout;
+document.getElementById('search').addEventListener('input', function(e) {
+    clearTimeout(searchTimeout);
+    const searchValue = e.target.value.trim();
+
+    // 如果输入为空，延迟300ms后自动搜索
+    if (searchValue === '') {
+        searchTimeout = setTimeout(function() {
+            submitForm();
+        }, 300);
+    } else {
+        // 有输入时，延迟500ms后自动搜索
+        searchTimeout = setTimeout(function() {
+            submitForm();
+        }, 500);
+    }
+});
+
+// 键盘快捷键支持
+document.addEventListener('keydown', function(e) {
+    // Ctrl+K 或 Cmd+K 聚焦搜索框
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('search').focus();
+        document.getElementById('search').select();
+    }
+
+    // Escape 清空搜索
+    if (e.key === 'Escape') {
+        const searchInput = document.getElementById('search');
+        if (searchInput === document.activeElement && searchInput.value) {
+            clearSearch();
+        }
+    }
+
+    // Enter 在搜索框时提交表单
+    if (e.key === 'Enter' && document.activeElement.id === 'search') {
+        e.preventDefault();
+        submitForm();
+    }
+});
+
+// 搜索框高亮匹配文本
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm) return text;
+
+    const regex = new RegExp(`(${searchTerm})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+}
 
 // 显示提示框
 function showAlert(title, message, type = 'info') {
