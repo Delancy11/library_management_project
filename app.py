@@ -397,8 +397,32 @@ def admin_categories():
     if not isinstance(current_user, Admin):
         abort(403)
 
-    categories = Category.query.all()
-    return render_template('admin/categories.html', categories=categories)
+    # 获取搜索参数
+    search = request.args.get('search', '').strip()
+
+    # 构建基础查询
+    query = Category.query
+
+    # 搜索功能
+    if search:
+        search_filter = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                Category.name.like(search_filter),
+                Category.description.like(search_filter)
+            )
+        )
+
+    # 执行查询
+    categories = query.all()
+
+    # 过滤后的分类（用于搜索结果显示）
+    filtered_categories = categories if search else None
+
+    return render_template('admin/categories.html',
+                         categories=Category.query.all(),  # 所有分类用于统计
+                         filtered_categories=filtered_categories,
+                         search=search)
 
 @app.route('/admin/categories/add', methods=['GET', 'POST'])
 @login_required

@@ -2,6 +2,140 @@
 
 {% block title %}图书管理 - 图书管理系统{% endblock %}
 
+{% block extra_css %}
+<style>
+/* 图书搜索框增强样式 */
+.search-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.search-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: 3px solid #5a67d8;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+/* 搜索输入框样式 */
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    transform: translateY(-1px);
+}
+
+.form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* 搜索建议样式 */
+#searchSuggestions {
+    border-radius: 0.5rem;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 0.25rem;
+}
+
+#searchSuggestions .dropdown-item {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+#searchSuggestions .dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+#searchSuggestions .dropdown-item.active {
+    background-color: #667eea;
+    color: white;
+}
+
+/* 按钮增强样式 */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-outline-secondary {
+    border-color: #dee2e6;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    transform: translateY(-1px);
+}
+
+/* 徽章样式 */
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+/* 搜索状态提示 */
+.alert-info {
+    background-color: #e7f3ff;
+    border-color: #b6d4fe;
+    color: #052c65;
+}
+
+/* 加载动画 */
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .search-card {
+        margin-bottom: 1rem;
+    }
+
+    .btn-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .btn-group .btn {
+        margin: 0;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
@@ -13,7 +147,7 @@
 <!-- 增强搜索栏 -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card shadow-sm">
+        <div class="card search-card shadow-sm">
             <div class="card-header bg-primary text-white">
                 <h6 class="mb-0"><i class="bi bi-funnel"></i> 智能搜索与筛选</h6>
             </div>
