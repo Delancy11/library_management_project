@@ -192,11 +192,55 @@ def admin_users():
     if not isinstance(current_user, Admin):
         abort(403)
 
+    # 获取搜索和分页参数
     page = request.args.get('page', 1, type=int)
-    users = User.query.paginate(
+    search = request.args.get('search', '').strip()
+    status = request.args.get('status', '')  # all, active, inactive
+    sort_by = request.args.get('sort', 'created_date')  # created_date, username, email
+
+    # 构建基础查询
+    query = User.query
+
+    # 搜索功能
+    if search:
+        search_filter = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                User.username.like(search_filter),
+                User.email.like(search_filter),
+                User.full_name.like(search_filter),
+                User.phone.like(search_filter)
+            )
+        )
+
+    # 状态筛选
+    if status == 'active':
+        # 可以根据实际业务逻辑定义活跃用户
+        query = query.filter(User.is_active == True)
+    elif status == 'inactive':
+        query = query.filter(User.is_active == False)
+
+    # 排序
+    if sort_by == 'username':
+        query = query.order_by(User.username)
+    elif sort_by == 'email':
+        query = query.order_by(User.email)
+    elif sort_by == 'created_date':
+        query = query.order_by(User.created_at.desc())
+    else:
+        query = query.order_by(User.id)
+
+    # 分页查询
+    users = query.paginate(
         page=page, per_page=10, error_out=False
     )
-    return render_template('admin/users.html', users=users)
+
+    # 保存搜索参数用于模板显示
+    return render_template('admin/users.html',
+                         users=users,
+                         search=search,
+                         status=status,
+                         sort_by=sort_by)
 
 @app.route('/admin/users/delete/<int:user_id>')
 @login_required
