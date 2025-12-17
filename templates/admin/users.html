@@ -519,36 +519,55 @@ function showAlert(title, message, type = 'info') {
 
 // 显示用户详情
 function showUserDetails(userId) {
-    // 这里可以通过AJAX获取用户详细信息
-    // 为了演示，我们使用静态数据
-    const userDetails = {
-        id: userId,
-        username: 'user' + userId,
-        email: 'user' + userId + '@example.com',
-        fullName: '用户' + userId,
-        phone: '1380013800' + userId,
-        address: '测试地址' + userId + '号',
-        createdAt: '2024-01-' + (userId < 10 ? '0' + userId : userId),
-        borrowCount: Math.floor(Math.random() * 10),
-        activeBorrows: Math.floor(Math.random() * 3)
-    };
-
+    // 显示加载状态
     const content = `
-        <table class="table table-bordered">
-            <tr><th>用户ID</th><td>${userDetails.id}</td></tr>
-            <tr><th>用户名</th><td>${userDetails.username}</td></tr>
-            <tr><th>邮箱</th><td>${userDetails.email}</td></tr>
-            <tr><th>姓名</th><td>${userDetails.fullName}</td></tr>
-            <tr><th>手机号</th><td>${userDetails.phone}</td></tr>
-            <tr><th>地址</th><td>${userDetails.address}</td></tr>
-            <tr><th>注册时间</th><td>${userDetails.createdAt}</td></tr>
-            <tr><th>历史借阅</th><td>${userDetails.borrowCount} 次</td></tr>
-            <tr><th>当前借阅</th><td>${userDetails.activeBorrows} 本</td></tr>
-        </table>
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2">正在加载用户详情...</p>
+        </div>
     `;
 
     document.getElementById('userDetailsContent').innerHTML = content;
     new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+
+    // 通过AJAX获取真实的用户数据
+    fetch(`/admin/users/${userId}/details`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('获取用户详情失败');
+            }
+            return response.json();
+        })
+        .then(userDetails => {
+            const detailsContent = `
+                <table class="table table-bordered">
+                    <tr><th>用户ID</th><td>${userDetails.id}</td></tr>
+                    <tr><th>用户名</th><td>${userDetails.username}</td></tr>
+                    <tr><th>邮箱</th><td>${userDetails.email}</td></tr>
+                    <tr><th>姓名</th><td>${userDetails.full_name || '-'}</td></tr>
+                    <tr><th>手机号</th><td>${userDetails.phone || '-'}</td></tr>
+                    <tr><th>地址</th><td>${userDetails.address || '-'}</td></tr>
+                    <tr><th>注册时间</th><td>${userDetails.created_at}</td></tr>
+                    <tr><th>历史借阅</th><td>${userDetails.total_borrows} 次</td></tr>
+                    <tr><th>当前借阅</th><td>${userDetails.active_borrows} 本</td></tr>
+                </table>
+            `;
+
+            document.getElementById('userDetailsContent').innerHTML = detailsContent;
+        })
+        .catch(error => {
+            const errorContent = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>错误:</strong> ${error.message}
+                </div>
+                <p class="text-muted">无法加载用户详情，请稍后重试。</p>
+            `;
+
+            document.getElementById('userDetailsContent').innerHTML = errorContent;
+        });
 }
 
 // 确认删除用户
