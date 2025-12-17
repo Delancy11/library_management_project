@@ -179,7 +179,7 @@
                 <div class="alert alert-info mt-3 mb-0">
                     <i class="bi bi-info-circle"></i>
                     搜索关键词：<strong>"{{ request.args.get('search') }}"</strong>
-                    - 找到 <strong>{{ filtered_categories|length if filtered_categories else categories|length }}</strong> 个分类
+                    - 找到 <strong>{{ filtered_categories|length if filtered_categories is not none else categories|length }}</strong> 个分类
                 </div>
                 {% endif %}
             </div>
@@ -194,7 +194,7 @@
                 <div>
                     <h5><i class="bi bi-list"></i> 分类列表</h5>
                     <p class="text-muted mb-0">
-                        共 {{ filtered_categories|length if filtered_categories else categories|length }} 个分类
+                        共 {{ filtered_categories|length if filtered_categories is not none else categories|length }} 个分类
                         {% if request.args.get('search') %}
                         (筛选后，总共 {{ categories|length }} 个分类)
                         {% endif %}
@@ -206,7 +206,7 @@
 </div>
 
 <div class="row">
-    {% set display_categories = filtered_categories if filtered_categories is defined else categories %}
+    {% set display_categories = filtered_categories if filtered_categories is not none else categories %}
     {% for category in display_categories %}
         <div class="col-md-4 mb-4 category-item" data-category-name="{{ category.name|lower }}" data-category-description="{{ category.description|lower if category.description else '' }}">
             <div class="card h-100 category-card">
@@ -318,7 +318,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4>{{ categories|selectattr('books')|map(attribute='books')|map('length')|sum }}</h4>
+                        <h4>{{ categories|map(attribute='books')|map('length')|sum }}</h4>
                         <p>总图书数</p>
                     </div>
                     <div class="align-self-center">

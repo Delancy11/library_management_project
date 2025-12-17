@@ -286,14 +286,18 @@ def admin_books():
         )
 
     # 应用分类筛选
-    if category_id:
-        query = query.filter(Book.category_id == category_id)
+    if category_id and category_id != '':
+        try:
+            category_id = int(category_id)
+            query = query.filter(Book.category_id == category_id)
+        except (ValueError, TypeError):
+            pass
 
     # 应用状态筛选
     if status == 'available':
-        query = query.filter(Book.available_copies > 0)
+        query = query.filter(Book.available_quantity > 0)
     elif status == 'borrowed':
-        query = query.filter(Book.total_copies > Book.available_copies)
+        query = query.filter(Book.quantity > Book.available_quantity)
 
     # 应用排序
     if sort_by == 'id':
@@ -421,7 +425,7 @@ def admin_categories():
 
     return render_template('admin/categories.html',
                          categories=Category.query.all(),  # 所有分类用于统计
-                         filtered_categories=filtered_categories,
+                         filtered_categories=filtered_categories if search else None,
                          search=search)
 
 @app.route('/admin/categories/add', methods=['GET', 'POST'])
@@ -921,10 +925,7 @@ def user_profile():
         flash('个人资料更新成功！', 'success')
         return redirect(url_for('user_profile'))
 
-    # 获取用户的所有借阅记录
-    borrow_records = BorrowRecord.query.filter_by(user_id=current_user.id).all()
-
-    return render_template('user/profile.html', borrow_records=borrow_records)
+    return render_template('user/profile.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
