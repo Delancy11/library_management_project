@@ -952,7 +952,10 @@ def user_profile():
         flash('个人资料更新成功！', 'success')
         return redirect(url_for('user_profile'))
 
-    return render_template('user/profile.html')
+    # 获取用户的所有借阅记录
+    borrow_records = BorrowRecord.query.filter_by(user_id=current_user.id).all()
+
+    return render_template('user/profile.html', borrow_records=borrow_records)
 
 if __name__ == '__main__':
     app.run(debug=True)
