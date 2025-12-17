@@ -539,9 +539,9 @@ def admin_borrow_records():
     if search:
         search_term = f"%{search}%"
         if search_type == 'book':
-            query = query.join(Book).filter(Book.title.like(search_term))
+            query = query.join(Book, BorrowRecord.book_id == Book.id).filter(Book.title.like(search_term))
         elif search_type == 'user':
-            query = query.join(User).filter(
+            query = query.join(User, BorrowRecord.user_id == User.id).filter(
                 db.or_(
                     User.username.like(search_term),
                     User.full_name.like(search_term),
@@ -557,7 +557,7 @@ def admin_borrow_records():
             except ValueError:
                 pass
         else:  # all
-            query = query.join(Book, User).filter(
+            query = query.join(Book, BorrowRecord.book_id == Book.id).join(User, BorrowRecord.user_id == User.id).filter(
                 db.or_(
                     Book.title.like(search_term),
                     Book.author.like(search_term),
@@ -632,7 +632,7 @@ def admin_borrow_records():
     elif sort_by == 'return_date':
         query = query.order_by(BorrowRecord.return_date.desc())
     elif sort_by == 'user_name':
-        query = query.join(User).order_by(User.full_name)
+        query = query.join(User, BorrowRecord.user_id == User.id).order_by(User.full_name)
     else:
         query = query.order_by(BorrowRecord.borrow_date.desc())
 
