@@ -95,6 +95,18 @@
     font-size: 0.75rem;
 }
 
+/* 可点击的分类徽章样式 */
+.badge.text-decoration-none {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.badge.text-decoration-none:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 /* 搜索状态提示 */
 .alert-info {
     background-color: #e7f3ff;
@@ -313,7 +325,11 @@
                                     <td>{{ book.author }}</td>
                                     <td>{{ book.isbn }}</td>
                                     <td>
-                                        <span class="badge bg-info">{{ book.category.name }}</span>
+                                        <a href="{{ url_for('admin_books') }}?category={{ book.category.id }}"
+                                           class="badge bg-info text-decoration-none"
+                                           title="点击查看此分类的所有图书">
+                                            {{ book.category.name }}
+                                        </a>
                                     </td>
                                     <td>{{ book.quantity }}</td>
                                     <td>
