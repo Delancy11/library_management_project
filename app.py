@@ -526,6 +526,7 @@ def admin_borrow_records():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     sort_by = request.args.get('sort_by', 'borrow_date')
+    due_filter = request.args.get('due_filter', '')  # 新增：到期日期筛选参数
 
     # 构建基础查询
     query = BorrowRecord.query
@@ -595,6 +596,29 @@ def admin_borrow_records():
             query = query.filter(BorrowRecord.borrow_date < end_date)
         except ValueError:
             pass
+
+    # 应用到期日期筛选
+    if due_filter == 'today':
+        # 今日到期：从今天开始到明天结束
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        query = query.filter(
+            BorrowRecord.status == 'borrowed',
+            BorrowRecord.due_date >= today_start,
+            BorrowRecord.due_date < today_end
+        )
+    elif due_filter == 'this_week':
+        # 本周到期：从本周一开始到本周日结束
+        now = datetime.utcnow()
+        days_since_monday = now.weekday()
+        week_start = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+        week_end = week_start + timedelta(days=7)
+        query = query.filter(
+            BorrowRecord.status == 'borrowed',
+            BorrowRecord.due_date >= week_start,
+            BorrowRecord.due_date < week_end
+        )
+
 
     # 应用排序
     if sort_by == 'borrow_date':
@@ -848,16 +872,22 @@ def borrow_history():
 
     # 搜索条件
     if search:
+        search_filter = f'%{search}%'
         query = query.join(Book).filter(
-            Book.title.contains(search) | Book.author.contains(search)
+            db.or_(
+                Book.title.like(search_filter),
+                Book.author.like(search_filter),
+                Book.isbn.like(search_filter)
+            )
         )
 
     # 状态筛选
     if status == 'borrowed':
-        query = query.filter_by(status='borrowed')
+        query = query.filter(BorrowRecord.status == 'borrowed')
     elif status == 'returned':
-        query = query.filter_by(status='returned')
+        query = query.filter(BorrowRecord.status == 'returned')
     elif status == 'overdue':
+        # 查询状态为借阅中且已逾期的记录
         query = query.filter(
             BorrowRecord.status == 'borrowed',
             BorrowRecord.due_date < datetime.utcnow()

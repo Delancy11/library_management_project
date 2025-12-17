@@ -2073,52 +2073,62 @@ function toggleAdvanced() {
 
 // 清除搜索
 function clearSearch() {
-    const searchForm = document.getElementById('searchForm');
-    const inputs = searchForm.querySelectorAll('input, select');
+    const url = new URL(window.location);
 
-    inputs.forEach(input => {
-        if (input.type === 'text' || input.type === 'date') {
-            input.value = '';
-        } else if (input.tagName === 'SELECT') {
-            input.selectedIndex = 0;
-        }
-    });
+    // 清除所有筛选参数
+    url.searchParams.delete('search');
+    url.searchParams.delete('status');
+    url.searchParams.delete('search_type');
+    url.searchParams.delete('days');
+    url.searchParams.delete('date_from');
+    url.searchParams.delete('date_to');
+    url.searchParams.delete('due_filter');
+    url.searchParams.set('page', '1');
 
-    // 提交空表单以清除所有筛选
-    searchForm.submit();
+    window.location.href = url.toString();
+}
+
+// 清除搜索参数（不跳转）
+function clearSearchParams(url) {
+    // 清除所有筛选参数
+    url.searchParams.delete('search');
+    url.searchParams.delete('status');
+    url.searchParams.delete('search_type');
+    url.searchParams.delete('days');
+    url.searchParams.delete('date_from');
+    url.searchParams.delete('date_to');
+    url.searchParams.delete('due_filter');
+    url.searchParams.set('page', '1');
 }
 
 // 快速筛选
 function quickFilter(type) {
-    const searchForm = document.getElementById('searchForm');
-    const status = searchForm.querySelector('select[name="status"]');
-    const days = searchForm.querySelector('select[name="days"]');
-    const searchInput = searchForm.querySelector('input[name="search"]');
+    const url = new URL(window.location);
 
-    // 清除现有筛选
-    clearSearch();
+    // 清除所有筛选参数
+    clearSearchParams(url);
 
     switch(type) {
         case 'overdue':
-            status.value = 'overdue';
+            url.searchParams.set('status', 'overdue');
             break;
         case 'today':
-            days.value = '1';
+            url.searchParams.set('due_filter', 'today');
             break;
         case 'this_week':
-            days.value = '7';
+            url.searchParams.set('due_filter', 'this_week');
             break;
         case 'frequent_users':
-            searchInput.value = '';
-            days.value = '30';
+            url.searchParams.set('days', '30');
             break;
         case 'long_overdue':
-            status.value = 'overdue';
-            days.value = '90';
+            url.searchParams.set('status', 'overdue');
+            url.searchParams.set('days', '90');
             break;
     }
 
-    searchForm.submit();
+    // 跳转到新的URL
+    window.location.href = url.toString();
 }
 
 // 实时搜索（防抖）
