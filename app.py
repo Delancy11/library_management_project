@@ -107,7 +107,7 @@ def login():
         if user and user.check_password(password):
             login_user(user, remember=form.remember.data)
             flash('登录成功！', 'success')
-            return redirect(url_for('user_dashboard'))
+            return redirect(url_for('browse_books'))
 
         flash('用户名或密码错误！', 'danger')
 
@@ -266,7 +266,7 @@ def admin_books():
     # 获取搜索和筛选参数
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').strip()
-    category_id = request.args.get('category', '', type=int)
+    category_id = request.args.get('category', '')
     status = request.args.get('status', '')  # all, available, borrowed
     sort_by = request.args.get('sort', 'id')  # id, title, author, added_date
 
@@ -539,9 +539,9 @@ def admin_borrow_records():
     if search:
         search_term = f"%{search}%"
         if search_type == 'book':
-            query = query.join(Book).filter(Book.title.like(search_term))
+            query = query.join(Book, BorrowRecord.book_id == Book.id).filter(Book.title.like(search_term))
         elif search_type == 'user':
-            query = query.join(User).filter(
+            query = query.join(User, BorrowRecord.user_id == User.id).filter(
                 db.or_(
                     User.username.like(search_term),
                     User.full_name.like(search_term),
@@ -557,7 +557,7 @@ def admin_borrow_records():
             except ValueError:
                 pass
         else:  # all
-            query = query.join(Book, User).filter(
+            query = query.join(Book, BorrowRecord.book_id == Book.id).join(User, BorrowRecord.user_id == User.id).filter(
                 db.or_(
                     Book.title.like(search_term),
                     Book.author.like(search_term),
@@ -623,6 +623,7 @@ def admin_borrow_records():
             BorrowRecord.due_date < week_end
         )
 
+
     # 应用排序
     if sort_by == 'borrow_date':
         query = query.order_by(BorrowRecord.borrow_date.desc())
@@ -631,7 +632,7 @@ def admin_borrow_records():
     elif sort_by == 'return_date':
         query = query.order_by(BorrowRecord.return_date.desc())
     elif sort_by == 'user_name':
-        query = query.join(User).order_by(User.full_name)
+        query = query.join(User, BorrowRecord.user_id == User.id).order_by(User.full_name)
     else:
         query = query.order_by(BorrowRecord.borrow_date.desc())
 
@@ -829,7 +830,7 @@ def borrow_book(book_id):
     db.session.commit()
 
     flash('图书借阅成功！请按时归还。', 'success')
-    return redirect(url_for('user_dashboard'))
+    return redirect(url_for('browse_books'))
 
 # 用户归还图书
 @app.route('/books/return/<int:record_id>')
@@ -845,7 +846,7 @@ def return_book(record_id):
 
     if record.status == 'returned':
         flash('该图书已经归还！', 'warning')
-        return redirect(url_for('user_dashboard'))
+        return redirect(url_for('browse_books'))
 
     # 更新借阅记录
     record.return_date = datetime.utcnow()
@@ -856,7 +857,7 @@ def return_book(record_id):
     db.session.commit()
 
     flash('图书归还成功！', 'success')
-    return redirect(url_for('user_dashboard'))
+    return redirect(url_for('browse_books'))
 
 # 用户借阅历史
 @app.route('/user/borrow-history')
