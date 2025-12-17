@@ -213,12 +213,12 @@ def admin_users():
             )
         )
 
-    # 状态筛选
-    if status == 'active':
-        # 可以根据实际业务逻辑定义活跃用户
-        query = query.filter(User.is_active == True)
-    elif status == 'inactive':
-        query = query.filter(User.is_active == False)
+    # 状态筛选 - 由于User模型没有is_active字段，暂时移除此功能
+    # 如果需要，可以添加is_active字段到User模型
+    # if status == 'active':
+    #     query = query.filter(User.is_active == True)
+    # elif status == 'inactive':
+    #     query = query.filter(User.is_active == False)
 
     # 排序
     if sort_by == 'username':
@@ -241,6 +241,32 @@ def admin_users():
                          search=search,
                          status=status,
                          sort_by=sort_by)
+
+@app.route('/admin/users/<int:user_id>/details')
+@login_required
+def get_user_details(user_id):
+    if not isinstance(current_user, Admin):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    user = User.query.get_or_404(user_id)
+
+    # 获取用户的借阅统计
+    total_borrows = BorrowRecord.query.filter_by(user_id=user.id).count()
+    active_borrows = BorrowRecord.query.filter_by(user_id=user.id, status='borrowed').count()
+
+    user_details = {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'full_name': user.full_name,
+        'phone': user.phone,
+        'address': user.address,
+        'created_at': user.created_at.strftime('%Y-%m-%d %H:%M'),
+        'total_borrows': total_borrows,
+        'active_borrows': active_borrows
+    }
+
+    return jsonify(user_details)
 
 @app.route('/admin/users/delete/<int:user_id>')
 @login_required

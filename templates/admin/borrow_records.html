@@ -964,8 +964,8 @@
                                                 {{ (record.return_date - record.borrow_date).days }} 天
                                             </span>
                                         {% else %}
-                                            <span class="badge bg-light text-dark">
-                                                {{ (datetime.utcnow() - record.borrow_date).days }} 天
+                                            <span class="badge bg-light text-dark" data-borrow-date="{{ record.borrow_date.strftime('%Y-%m-%d') }}">
+                                                计算中...
                                             </span>
                                         {% endif %}
                                     </td>
@@ -1160,8 +1160,32 @@
 
 {% block scripts %}
 <script>
+// 更新借阅天数显示
+function updateBorrowDays() {
+    const today = new Date();
+    document.querySelectorAll('[data-borrow-date]').forEach(element => {
+        const borrowDate = new Date(element.dataset.borrowDate);
+        const days = Math.floor((today - borrowDate) / (1000 * 60 * 60 * 24));
+        element.textContent = `${days} 天`;
+
+        // 根据天数添加样式
+        if (days > 30) {
+            element.classList.add('bg-danger', 'text-white');
+            element.classList.remove('bg-light', 'text-dark');
+        } else if (days > 14) {
+            element.classList.add('bg-warning', 'text-dark');
+            element.classList.remove('bg-light', 'text-dark');
+        }
+    });
+}
+
 // 检查搜索结果并显示提示
 document.addEventListener('DOMContentLoaded', function() {
+    // 更新借阅天数
+    updateBorrowDays();
+
+    // 每分钟更新一次借阅天数
+    setInterval(updateBorrowDays, 60000);
     const searchParams = new URLSearchParams(window.location.search);
     const searchQuery = searchParams.get('search');
     const statusQuery = searchParams.get('status');
