@@ -107,7 +107,7 @@ def login():
         if user and user.check_password(password):
             login_user(user, remember=form.remember.data)
             flash('登录成功！', 'success')
-            return redirect(url_for('user_dashboard'))
+            return redirect(url_for('browse_books'))
 
         flash('用户名或密码错误！', 'danger')
 
@@ -830,7 +830,7 @@ def borrow_book(book_id):
     db.session.commit()
 
     flash('图书借阅成功！请按时归还。', 'success')
-    return redirect(url_for('user_dashboard'))
+    return redirect(url_for('browse_books'))
 
 # 用户归还图书
 @app.route('/books/return/<int:record_id>')
@@ -846,7 +846,7 @@ def return_book(record_id):
 
     if record.status == 'returned':
         flash('该图书已经归还！', 'warning')
-        return redirect(url_for('user_dashboard'))
+        return redirect(url_for('browse_books'))
 
     # 更新借阅记录
     record.return_date = datetime.utcnow()
@@ -857,7 +857,7 @@ def return_book(record_id):
     db.session.commit()
 
     flash('图书归还成功！', 'success')
-    return redirect(url_for('user_dashboard'))
+    return redirect(url_for('browse_books'))
 
 # 用户借阅历史
 @app.route('/user/borrow-history')
