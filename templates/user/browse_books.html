@@ -50,7 +50,11 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="badge bg-primary">{{ book.category.name }}</span>
+                    <a href="{{ url_for('browse_books') }}?category_id={{ book.category.id }}"
+                       class="badge bg-primary text-decoration-none"
+                       title="点击查看此分类的所有图书">
+                        {{ book.category.name }}
+                    </a>
                     <small class="text-muted">库存: {{ book.available_quantity }}/{{ book.quantity }}</small>
                 </div>
                 <div class="card-body">
@@ -166,6 +170,22 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 可点击的分类徽章样式 */
+.badge.text-decoration-none {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.badge.text-decoration-none:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+</style>
 {% endblock %}
 
 {% block scripts %}

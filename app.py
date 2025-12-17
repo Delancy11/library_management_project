@@ -266,7 +266,7 @@ def admin_books():
     # 获取搜索和筛选参数
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').strip()
-    category_id = request.args.get('category', '', type=int)
+    category_id = request.args.get('category', '')
     status = request.args.get('status', '')  # all, available, borrowed
     sort_by = request.args.get('sort', 'id')  # id, title, author, added_date
 
@@ -286,14 +286,18 @@ def admin_books():
         )
 
     # 应用分类筛选
-    if category_id:
-        query = query.filter(Book.category_id == category_id)
+    if category_id and category_id != '':
+        try:
+            category_id = int(category_id)
+            query = query.filter(Book.category_id == category_id)
+        except (ValueError, TypeError):
+            pass
 
     # 应用状态筛选
     if status == 'available':
-        query = query.filter(Book.available_copies > 0)
+        query = query.filter(Book.available_quantity > 0)
     elif status == 'borrowed':
-        query = query.filter(Book.total_copies > Book.available_copies)
+        query = query.filter(Book.quantity > Book.available_quantity)
 
     # 应用排序
     if sort_by == 'id':
@@ -421,7 +425,7 @@ def admin_categories():
 
     return render_template('admin/categories.html',
                          categories=Category.query.all(),  # 所有分类用于统计
-                         filtered_categories=filtered_categories,
+                         filtered_categories=filtered_categories if search else None,
                          search=search)
 
 @app.route('/admin/categories/add', methods=['GET', 'POST'])

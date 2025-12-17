@@ -2,6 +2,30 @@
 
 {% block title %}管理员仪表板 - 图书管理系统{% endblock %}
 
+{% block extra_css %}
+<style>
+.hover-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #0d6efd !important;
+}
+
+.hover-card:hover .bi-folder-fill {
+    color: #0d6efd !important;
+    transform: scale(1.1);
+}
+
+.bi-folder-fill {
+    transition: all 0.3s ease;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
@@ -96,6 +120,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- 警告信息 -->
 {% if stats.overdue_records > 0 %}
