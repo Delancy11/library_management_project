@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}分类管理 - 图书管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 分类搜索框样式 */
+.search-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.search-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: 3px solid #5a67d8;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+/* 搜索输入框样式 */
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    transform: translateY(-1px);
+}
+
+/* 按钮增强样式 */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-outline-secondary {
+    border-color: #dee2e6;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    transform: translateY(-1px);
+}
+
+/* 分类卡片样式 */
+.category-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* 高亮搜索结果 */
+.highlight {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 0.1em 0.2em;
+    border-radius: 0.2em;
+    font-weight: 600;
+}
+
+/* 加载动画 */
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .search-card {
+        margin-bottom: 1rem;
+    }
+
+    .btn-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .btn-group .btn {
+        margin: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-tags"></i> 分类管理</h2>
+        <p class="text-muted">管理系统中的图书分类</p>
+    </div>
+</div>
+
+<!-- 分类搜索栏 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card search-card shadow-sm">
+            <div class="card-header text-white">
+                <h6 class="mb-0"><i class="bi bi-search"></i> 分类搜索</h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3" id="searchForm">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label for="search" class="form-label">
+                                <i class="bi bi-tags"></i> 搜索分类
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text"
+                                       class="form-control"
+                                       id="search"
+                                       name="search"
+                                       placeholder="输入分类名称或描述..."
+                                       value="{{ request.args.get('search', '') }}"
+                                       autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()" title="清空搜索">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">支持模糊搜索，可搜索分类名称和描述</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label d-block invisible">&nbsp;</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> 搜索
+                                </button>
+                                <a href="{{ url_for('admin_categories') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise"></i> 重置
+                                </a>
+                                <a href="{{ url_for('add_category') }}" class="btn btn-success">
+                                    <i class="bi bi-plus-circle"></i> 添加分类
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- 搜索结果统计 -->
+                {% if request.args.get('search') %}
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    搜索关键词：<strong>"{{ request.args.get('search') }}"</strong>
+                    - 找到 <strong>{{ filtered_categories|length if filtered_categories is not none else categories|length }}</strong> 个分类
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5><i class="bi bi-list"></i> 分类列表</h5>
+                    <p class="text-muted mb-0">
+                        共 {{ filtered_categories|length if filtered_categories is not none else categories|length }} 个分类
+                        {% if request.args.get('search') %}
+                        (筛选后，总共 {{ categories|length }} 个分类)
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% set display_categories = filtered_categories if filtered_categories is not none else categories %}
+    {% for category in display_categories %}
+        <div class="col-md-4 mb-4 category-item" data-category-name="{{ category.name|lower }}" data-category-description="{{ category.description|lower if category.description else '' }}">
+            <div class="card h-100 category-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">
+                        <i class="bi bi-book-fill"></i> {{ category.books|length }} 本书
+                    </span>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('edit_category', category_id=category.id) }}" class="btn btn-sm btn-outline-warning">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if not category.books %}
+                            <!-- 分类没有图书时显示普通删除按钮 -->
+                            <a href="{{ url_for('delete_category', category_id=category.id) }}" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('确定要删除分类《{{ category.name }}》吗？')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        {% else %}
+                            <!-- 分类有图书时显示强制删除按钮 -->
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-danger dropdown-toggle"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item text-danger"
+                                           href="{{ url_for('force_delete_category', category_id=category.id) }}"
+                                           onclick="return confirm('警告：该分类有 {{ category.books|length }} 本图书！\n\n删除分类会将所有图书移动到其他分类。\n\n确定要继续吗？')">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            强制删除（移动图书）
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><span class="dropdown-item text-muted small">当前有 {{ category.books|length }} 本图书在此分类中</span></li>
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ category.name }}</h5>
+                    {% if category.description %}
+                        <p class="card-text">{{ category.description }}</p>
+                    {% else %}
+                        <p class="card-text text-muted">暂无描述</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        创建于 {{ category.created_at.strftime('%Y-%m-%d') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% if not categories %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-tags" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">暂无分类</h4>
+                <p class="text-muted">系统中还没有图书分类，<a href="{{ url_for('add_category') }}">立即添加第一个分类</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 分类统计 -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ categories|length }}</h4>
+                        <p>总分类数</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-tags-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ categories|selectattr('books')|list|length }}</h4>
+                        <p>有图书的分类</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-book-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ categories|map(attribute='books')|map('length')|sum }}</h4>
+                        <p>总图书数</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-collection-fill" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> 快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-speedometer2"></i> 仪表板
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-people"></i> 用户管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_books') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-book"></i> 图书管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_borrow_records') }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-clock-history"></i> 借阅记录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 初始化工具提示
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // 搜索功能
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchQuery = searchParams.get('search');
+
+    // 如果有搜索查询，高亮匹配的文本
+    if (searchQuery && searchQuery.trim()) {
+        highlightSearchTerms(searchQuery.toLowerCase());
+    }
+
+    // 实时搜索功能（输入时自动搜索，延迟执行）
+    let searchTimeout;
+    const searchInput = document.getElementById('search');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const searchValue = e.target.value.trim();
+
+            // 如果输入为空，延迟300ms后自动搜索
+            if (searchValue === '') {
+                searchTimeout = setTimeout(function() {
+                    document.getElementById('searchForm').submit();
+                }, 300);
+            } else {
+                // 有输入时，延迟500ms后自动搜索
+                searchTimeout = setTimeout(function() {
+                    document.getElementById('searchForm').submit();
+                }, 500);
+            }
+        });
+    }
+
+    // 键盘快捷键支持
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+K 或 Cmd+K 聚焦搜索框
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchInput = document.getElementById('search');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        }
+
+        // Escape 清空搜索
+        if (e.key === 'Escape') {
+            const searchInput = document.getElementById('search');
+            if (searchInput && searchInput === document.activeElement && searchInput.value) {
+                clearSearch();
+            }
+        }
+
+        // Enter 在搜索框时提交表单
+        if (e.key === 'Enter' && document.activeElement.id === 'search') {
+            e.preventDefault();
+            document.getElementById('searchForm').submit();
+        }
+    });
+
+    // 自动聚焦搜索框（如果有搜索参数）
+    if (searchQuery && searchInput) {
+        searchInput.focus();
+        searchInput.select();
+    }
+});
+
+// 清空搜索框
+function clearSearch() {
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+}
+
+// 高亮搜索匹配的文本
+function highlightSearchTerms(searchTerm) {
+    const categoryItems = document.querySelectorAll('.category-item');
+
+    categoryItems.forEach(function(item) {
+        const nameElement = item.querySelector('.card-title');
+        const descriptionElement = item.querySelector('.card-text');
+
+        // 高亮分类名称
+        if (nameElement) {
+            const name = nameElement.textContent;
+            const highlightedName = highlightText(name, searchTerm);
+            nameElement.innerHTML = highlightedName;
+        }
+
+        // 高亮分类描述
+        if (descriptionElement) {
+            const description = descriptionElement.textContent;
+            const highlightedDescription = highlightText(description, searchTerm);
+            descriptionElement.innerHTML = highlightedDescription;
+        }
+    });
+}
+
+// 高亮文本中的搜索词
+function highlightText(text, searchTerm) {
+    if (!searchTerm || searchTerm.length < 2) return text;
+
+    const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+    return text.replace(regex, '<mark class="highlight">$1</mark>');
+}
+
+// 转义正则表达式特殊字符
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// 显示提示框
+function showAlert(title, message, type = 'info') {
+    // 创建模态框HTML
+    const modalHtml = `
+        <div class="modal fade" id="searchAlertModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-${type} text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                            ${title}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-${type}" data-bs-dismiss="modal">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 如果模态框已存在，先移除
+    const existingModal = document.getElementById('searchAlertModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 添加新模态框到页面
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('searchAlertModal'));
+    modal.show();
+
+    // 模态框关闭后移除DOM
+    document.getElementById('searchAlertModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+</script>
+{% endblock %}

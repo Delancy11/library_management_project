@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-person"></i> 个人资料</h2>
+        <p class="text-muted">管理您的个人信息和账户设置</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-pencil"></i> 编辑资料</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="username" value="{{ current_user.username }}" readonly>
+                            <small class="form-text text-muted">用户名不可修改</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">邮箱</label>
+                            <input type="email" class="form-control" id="email" value="{{ current_user.email }}" readonly>
+                            <small class="form-text text-muted">邮箱不可修改</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="full_name" class="form-label">姓名</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name"
+                                   value="{{ current_user.full_name or '' }}">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">手机号</label>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                   value="{{ current_user.phone or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="address" class="form-label">地址</label>
+                        <textarea class="form-control" id="address" name="address" rows="3">{{ current_user.address or '' }}</textarea>
+                    </div>
+
+                    <hr>
+
+                    <h6><i class="bi bi-shield-lock"></i> 修改密码</h6>
+                    <p class="text-muted small">如需修改密码，请输入新密码</p>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">新密码</label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="输入新密码（留空则不修改）">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="confirm_password" class="form-label">确认新密码</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                   placeholder="再次输入新密码">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> 保存修改
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> 账户信息</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tbody>
+                        <tr>
+                            <td><strong>用户ID：</strong></td>
+                            <td>{{ current_user.id }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>注册时间：</strong></td>
+                            <td>{{ current_user.created_at.strftime('%Y-%m-%d') }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>账户类型：</strong></td>
+                            <td><span class="badge bg-success">普通用户</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>状态：</strong></td>
+                            <td><span class="badge bg-primary">正常</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="bi bi-graph-up"></i> 借阅统计</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h4 class="text-primary">{{ borrow_records|length if borrow_records else 0 }}</h4>
+                    <p class="text-muted">历史借阅记录</p>
+                </div>
+                <a href="{{ url_for('borrow_history') }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-clock-history"></i> 查看详情
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+
+    function validatePasswords() {
+        if (password.value && confirmPassword.value && password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('两次输入的密码不一致');
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    }
+
+    password.addEventListener('change', validatePasswords);
+    confirmPassword.addEventListener('keyup', validatePasswords);
+});
+</script>
+{% endblock %}

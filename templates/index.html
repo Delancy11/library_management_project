@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- 欢迎横幅 -->
+        <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+            <h1 class="display-4">欢迎来到图书管理系统</h1>
+            <p class="lead">高效、便捷的图书借阅管理平台</p>
+            <hr class="my-4">
+            {% if not current_user.is_authenticated %}
+                <p>请登录或注册以开始使用系统</p>
+                <a class="btn btn-light btn-lg" href="{{ url_for('login') }}" role="button">立即登录</a>
+                <a class="btn btn-outline-light btn-lg" href="{{ url_for('register') }}" role="button">注册账户</a>
+            {% endif %}
+        </div>
+
+        <!-- 功能介绍 -->
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-book-fill text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">图书管理</h5>
+                        <p class="card-text">完整的图书信息管理，包括分类、借阅、归还等功能</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people-fill text-success" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">用户管理</h5>
+                        <p class="card-text">管理员可以管理用户账户，普通用户管理个人信息</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-clock-history text-warning" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">借阅记录</h5>
+                        <p class="card-text">实时跟踪借阅记录，支持归还提醒和逾期管理</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统特色 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h4><i class="bi bi-star-fill text-warning"></i> 系统特色</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-shield-check text-info"></i> 权限分离</h5>
+                        <p>管理员和普通用户权限完全分离，确保数据安全</p>
+
+                        <h5><i class="bi bi-database text-info"></i> 数据完整</h5>
+                        <p>5张核心数据表覆盖图书管理的所有业务场景</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-lightning text-info"></i> 高效便捷</h5>
+                        <p>简洁的用户界面，快速完成图书借阅和归还操作</p>
+
+                        <h5><i class="bi bi-graph-up text-info"></i> 实时统计</h5>
+                        <p>管理员可查看系统统计信息和用户行为数据</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

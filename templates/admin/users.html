@@ -1,0 +1,561 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 图书管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 搜索框样式增强 */
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* 搜索结果高亮 */
+mark {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 0.1em 0.2em;
+    border-radius: 0.2em;
+}
+
+/* 搜索框动画效果 */
+#search {
+    transition: all 0.3s ease;
+}
+
+#search:focus {
+    transform: translateY(-1px);
+}
+
+/* 按钮悬停效果 */
+.btn-group .btn {
+    transition: all 0.2s ease;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+}
+
+/* 状态选择器样式 */
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* 搜索结果统计样式 */
+.alert-info {
+    background-color: #e7f3ff;
+    border-color: #b6d4fe;
+    color: #052c65;
+}
+
+/* 卡片头部样式 */
+.card-header {
+    border-bottom: 2px solid #0d6efd;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* 加载动画 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-people"></i> 用户管理</h2>
+        <p class="text-muted">管理系统中的所有用户账户</p>
+    </div>
+</div>
+
+<!-- 搜索栏 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-search"></i> 用户搜索与筛选</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3" id="searchForm">
+                    <!-- 搜索输入框 -->
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label for="search" class="form-label">
+                                <i class="bi bi-person-badge"></i> 关键词搜索
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text"
+                                       class="form-control"
+                                       id="search"
+                                       name="search"
+                                       placeholder="输入用户名、邮箱、姓名或手机号..."
+                                       value="{{ search or '' }}"
+                                       autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()" title="清空搜索">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">支持模糊搜索，可搜索用户名、邮箱、姓名、手机号</small>
+                        </div>
+                    </div>
+
+                    <!-- 状态筛选 -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="status" class="form-label">
+                                <i class="bi bi-toggle-on"></i> 用户状态
+                            </label>
+                            <select class="form-select" id="status" name="status" onchange="submitForm()">
+                                <option value="">全部状态</option>
+                                <option value="active" {% if status == 'active' %}selected{% endif %}>活跃用户</option>
+                                <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>非活跃用户</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 排序选项 -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="sort" class="form-label">
+                                <i class="bi bi-sort-down"></i> 排序方式
+                            </label>
+                            <select class="form-select" id="sort" name="sort" onchange="submitForm()">
+                                <option value="created_date" {% if sort_by == 'created_date' %}selected{% endif %}>注册时间</option>
+                                <option value="username" {% if sort_by == 'username' %}selected{% endif %}>用户名</option>
+                                <option value="email" {% if sort_by == 'email' %}selected{% endif %}>邮箱</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 搜索按钮 -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label d-block invisible">&nbsp;</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> 搜索
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="resetForm()" title="重置所有筛选">
+                                    <i class="bi bi-arrow-clockwise"></i> 重置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- 搜索结果统计 -->
+                {% if search or status %}
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    {% if search %}
+                        搜索关键词：<strong>"{{ search }}"</strong>
+                    {% endif %}
+                    {% if status %}
+                        {% if status == 'active' %}状态：活跃用户{% elif status == 'inactive' %}状态：非活跃用户{% endif %}
+                    {% endif %}
+                    - 找到 <strong>{{ users.total }}</strong> 个用户
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户列表 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-person-lines-fill"></i> 用户列表</h5>
+                <span class="badge bg-primary">共 {{ users.total }} 个用户</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>用户名</th>
+                                <th>邮箱</th>
+                                <th>姓名</th>
+                                <th>手机号</th>
+                                <th>注册时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users.items %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>
+                                        <strong>{{ user.username }}</strong>
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.full_name or '-' }}</td>
+                                    <td>{{ user.phone or '-' }}</td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <span class="badge bg-success">正常</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-info" onclick="showUserDetails({{ user.id }})">
+                                                <i class="bi bi-eye"></i> 查看
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ user.id }}, '{{ user.username }}')">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if not users.items %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-people" style="font-size: 4rem; color: #ccc;"></i>
+                        <h4 class="mt-3">暂无用户</h4>
+                        <p class="text-muted">
+                            {% if request.args.get('search') %}
+                                没有找到符合条件的用户，请尝试其他搜索条件。
+                            {% else %}
+                                系统中还没有注册用户。
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分页 -->
+{% if users.pages > 1 %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="用户分页">
+            <ul class="pagination justify-content-center">
+                {% if users.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_users', page=users.prev_num, search=search, status=status, sort_by=sort_by) }}">
+                            <i class="bi bi-chevron-left"></i> 上一页
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for page_num in users.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != users.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_users', page=page_num, search=search, status=status, sort_by=sort_by) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if users.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_users', page=users.next_num, search=search, status=status, sort_by=sort_by) }}">
+                            下一页 <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endif %}
+
+<!-- 统计信息 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <p class="mb-0">
+                    显示第 {{ (users.page - 1) * users.per_page + 1 }} -
+                    {{ users.page * users.per_page if users.page * users.per_page < users.total else users.total }}
+                    个用户，共 {{ users.total }} 个注册用户
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> 快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-speedometer2"></i> 仪表板
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_books') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-book"></i> 图书管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_categories') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-tags"></i> 分类管理
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('admin_borrow_records') }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-clock-history"></i> 借阅记录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户详情模态框 -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">用户详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userDetailsContent">
+                <!-- 用户详情将在这里动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 检查搜索结果并显示提示
+document.addEventListener('DOMContentLoaded', function() {
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchQuery = searchParams.get('search');
+    const userCount = {{ users.total }};
+
+    // 如果有搜索查询但没有结果，显示提示框
+    if (searchQuery && searchQuery.trim() && userCount === 0) {
+        showAlert('搜索结果', `没有找到包含 "${searchQuery}" 的用户，请尝试其他关键词。`, 'warning');
+    }
+
+    // 自动聚焦搜索框（如果有搜索参数）
+    if (searchQuery) {
+        document.getElementById('search').focus();
+        document.getElementById('search').select();
+    }
+});
+
+// 清空搜索框
+function clearSearch() {
+    const searchInput = document.getElementById('search');
+    searchInput.value = '';
+    searchInput.focus();
+}
+
+// 提交表单
+function submitForm() {
+    document.getElementById('searchForm').submit();
+}
+
+// 重置所有筛选条件
+function resetForm() {
+    // 清空搜索框
+    document.getElementById('search').value = '';
+    // 重置筛选条件
+    document.getElementById('status').value = '';
+    document.getElementById('sort').value = 'created_date';
+    // 提交表单
+    submitForm();
+}
+
+// 实时搜索功能（输入时自动搜索，延迟执行）
+let searchTimeout;
+document.getElementById('search').addEventListener('input', function(e) {
+    clearTimeout(searchTimeout);
+    const searchValue = e.target.value.trim();
+
+    // 如果输入为空，延迟300ms后自动搜索
+    if (searchValue === '') {
+        searchTimeout = setTimeout(function() {
+            submitForm();
+        }, 300);
+    } else {
+        // 有输入时，延迟500ms后自动搜索
+        searchTimeout = setTimeout(function() {
+            submitForm();
+        }, 500);
+    }
+});
+
+// 键盘快捷键支持
+document.addEventListener('keydown', function(e) {
+    // Ctrl+K 或 Cmd+K 聚焦搜索框
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('search').focus();
+        document.getElementById('search').select();
+    }
+
+    // Escape 清空搜索
+    if (e.key === 'Escape') {
+        const searchInput = document.getElementById('search');
+        if (searchInput === document.activeElement && searchInput.value) {
+            clearSearch();
+        }
+    }
+
+    // Enter 在搜索框时提交表单
+    if (e.key === 'Enter' && document.activeElement.id === 'search') {
+        e.preventDefault();
+        submitForm();
+    }
+});
+
+// 搜索框高亮匹配文本
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm) return text;
+
+    const regex = new RegExp(`(${searchTerm})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+}
+
+// 显示提示框
+function showAlert(title, message, type = 'info') {
+    // 创建模态框HTML
+    const modalHtml = `
+        <div class="modal fade" id="searchAlertModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-${type} text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                            ${title}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-${type}" data-bs-dismiss="modal">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 如果模态框已存在，先移除
+    const existingModal = document.getElementById('searchAlertModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 添加新模态框到页面
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('searchAlertModal'));
+    modal.show();
+
+    // 模态框关闭后移除DOM
+    document.getElementById('searchAlertModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// 显示用户详情
+function showUserDetails(userId) {
+    // 这里可以通过AJAX获取用户详细信息
+    // 为了演示，我们使用静态数据
+    const userDetails = {
+        id: userId,
+        username: 'user' + userId,
+        email: 'user' + userId + '@example.com',
+        fullName: '用户' + userId,
+        phone: '1380013800' + userId,
+        address: '测试地址' + userId + '号',
+        createdAt: '2024-01-' + (userId < 10 ? '0' + userId : userId),
+        borrowCount: Math.floor(Math.random() * 10),
+        activeBorrows: Math.floor(Math.random() * 3)
+    };
+
+    const content = `
+        <table class="table table-bordered">
+            <tr><th>用户ID</th><td>${userDetails.id}</td></tr>
+            <tr><th>用户名</th><td>${userDetails.username}</td></tr>
+            <tr><th>邮箱</th><td>${userDetails.email}</td></tr>
+            <tr><th>姓名</th><td>${userDetails.fullName}</td></tr>
+            <tr><th>手机号</th><td>${userDetails.phone}</td></tr>
+            <tr><th>地址</th><td>${userDetails.address}</td></tr>
+            <tr><th>注册时间</th><td>${userDetails.createdAt}</td></tr>
+            <tr><th>历史借阅</th><td>${userDetails.borrowCount} 次</td></tr>
+            <tr><th>当前借阅</th><td>${userDetails.activeBorrows} 本</td></tr>
+        </table>
+    `;
+
+    document.getElementById('userDetailsContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+}
+
+// 确认删除用户
+function confirmDelete(userId, username) {
+    if (confirm('确定要删除用户 "' + username + '" 吗？\n\n警告：删除后该用户的所有借阅记录也将被删除，此操作不可恢复！')) {
+        window.location.href = '{{ url_for("delete_user", user_id=0) }}'.replace('0', userId);
+    }
+}
+</script>
+{% endblock %}

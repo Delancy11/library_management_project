@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}编辑分类 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-pencil"></i> 编辑分类</h2>
+        <p class="text-muted">修改分类《{{ category.name }}》的信息</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-tags"></i> 分类信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.name.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">分类名称在系统中必须唯一</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">
+                                {% for error in form.description.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">简要描述该分类的用途和包含的图书类型</small>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6><i class="bi bi-info-circle"></i> 当前状态</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>分类ID：</strong>{{ category.id }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>图书数量：</strong>{{ category.books|length }} 本
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>创建时间：</strong>{{ category.created_at.strftime('%Y-%m-%d') }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>状态：</strong>
+                                    {% if category.books %}
+                                        <span class="badge bg-success">使用中</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">空分类</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_categories') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回列表
+                        </div>
+                        <div>
+                            {% if not category.books %}
+                                <a href="{{ url_for('delete_category', category_id=category.id) }}" class="btn btn-danger me-2"
+                                   onclick="return confirm('确定要删除分类《{{ category.name }}》吗？\n\n此分类下没有图书，删除后不可恢复！')">
+                                    <i class="bi bi-trash"></i> 删除分类
+                                </a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 保存修改
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> 编辑说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>可修改项</h6>
+                <ul>
+                    <li><strong>分类名称：</strong>更改显示名称</li>
+                    <li><strong>描述：</strong>更新分类说明</li>
+                </ul>
+
+                <h6>不可修改项</h6>
+                <ul>
+                    <li><strong>分类ID：</strong>系统标识</li>
+                    <li><strong>图书数量：</strong>通过图书管理调整</li>
+                    <li><strong>创建时间：</strong>创建时记录</li>
+                </ul>
+
+                {% if category.books %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>注意：</strong>该分类下有 {{ category.books|length }} 本图书，不能删除。
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="bi bi-book"></i> 该分类下的图书</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h4 class="text-primary">{{ category.books|length }}</h4>
+                    <p class="text-muted">本图书</p>
+                </div>
+                {% if category.books %}
+                    <a href="{{ url_for('admin_books') }}?category={{ category.id }}" class="btn btn-outline-info w-100">
+                        <i class="bi bi-list"></i> 查看图书列表
+                    </a>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        该分类下暂无图书
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if category.books %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6><i class="bi bi-bar-chart"></i> 最新添加的图书</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        {% for book in category.books[:5] %}
+                            <li class="mb-2">
+                                <small>
+                                    <strong>{{ book.title }}</strong><br>
+                                    {{ book.author }} - {{ book.created_at.strftime('%Y-%m-%d') }}
+                                </small>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% if category.books|length > 5 %}
+                        <small class="text-muted">还有 {{ category.books|length - 5 }} 本...</small>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}图书浏览 - 图书管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-book"></i> 图书浏览</h2>
+        <p class="text-muted">浏览和借阅您感兴趣的图书</p>
+    </div>
+</div>
+
+<!-- 搜索和筛选 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">搜索图书</label>
+                        <input type="text" class="form-control" id="search" name="search"
+                               value="{{ search }}" placeholder="输入书名或作者...">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category_id" class="form-label">分类筛选</label>
+                        <select class="form-select" id="category_id" name="category_id">
+                            <option value="">所有分类</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> 搜索
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 图书列表 -->
+<div class="row">
+    {% if books.items %}
+        {% for book in books.items %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('browse_books') }}?category_id={{ book.category.id }}"
+                       class="badge bg-primary text-decoration-none"
+                       title="点击查看此分类的所有图书">
+                        {{ book.category.name }}
+                    </a>
+                    <small class="text-muted">库存: {{ book.available_quantity }}/{{ book.quantity }}</small>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ book.title }}</h5>
+                    <p class="card-text text-muted">
+                        <i class="bi bi-person"></i> {{ book.author }}
+                        {% if book.publisher %}<br>
+                        <i class="bi bi-building"></i> {{ book.publisher }}
+                        {% endif %}
+                    </p>
+                    {% if book.description %}
+                    <p class="card-text">{{ book.description[:100] }}{% if book.description|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    <div class="text-muted small">
+                        <i class="bi bi-upc"></i> ISBN: {{ book.isbn }}
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        {% if book.publication_date %}
+                        出版: {{ book.publication_date.strftime('%Y') }}
+                        {% endif %}
+                    </small>
+                    {% if book.available_quantity > 0 %}
+                        <a href="{{ url_for('borrow_book', book_id=book.id) }}"
+                           class="btn btn-success btn-sm"
+                           onclick="return confirm('确定要借阅《{{ book.title }}》吗？')">
+                            <i class="bi bi-book"></i> 借阅
+                        </a>
+                    {% else %}
+                        <button class="btn btn-secondary btn-sm" disabled>
+                            <i class="bi bi-x-circle"></i> 暂无库存
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">暂无图书</h4>
+                <p class="text-muted">
+                    {% if search or selected_category %}
+                        没有找到符合条件的图书，请尝试其他搜索条件。
+                    {% else %}
+                        图书库中暂时没有图书，请联系管理员添加图书。
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- 分页 -->
+{% if books.pages > 1 %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="图书分页">
+            <ul class="pagination justify-content-center">
+                {% if books.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('browse_books', page=books.prev_num, search=search, category_id=selected_category) }}">
+                            <i class="bi bi-chevron-left"></i> 上一页
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for page_num in books.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != books.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('browse_books', page=page_num, search=search, category_id=selected_category) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if books.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('browse_books', page=books.next_num, search=search, category_id=selected_category) }}">
+                            下一页 <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endif %}
+
+<!-- 统计信息 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <p class="mb-0">
+                    显示第 {{ (books.page - 1) * 10 + 1 }} - {{ books.page * 10 }} 条记录，
+                    共 {{ books.total }} 本图书
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 可点击的分类徽章样式 */
+.badge.text-decoration-none {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.badge.text-decoration-none:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 检查搜索结果并显示提示
+document.addEventListener('DOMContentLoaded', function() {
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchQuery = searchParams.get('search');
+    const categoryQuery = searchParams.get('category_id');
+    const bookCount = {{ books.total if books.total is defined else 0 }};
+
+    // 如果有搜索查询但没有结果，显示提示框
+    if ((searchQuery && searchQuery.trim()) || categoryQuery) {
+        if (bookCount === 0) {
+            let message = '没有找到符合条件的图书，请尝试其他搜索条件。';
+            if (searchQuery && categoryQuery) {
+                message = `没有找到包含 "${searchQuery}" 且属于选定分类的图书，请尝试其他关键词或分类。`;
+            } else if (searchQuery) {
+                message = `没有找到包含 "${searchQuery}" 的图书，请尝试其他关键词。`;
+            } else if (categoryQuery) {
+                message = '该分类下暂时没有可借阅的图书，请尝试其他分类。';
+            }
+            showAlert('搜索结果', message, 'warning');
+        }
+    }
+});
+
+// 显示提示框
+function showAlert(title, message, type = 'info') {
+    // 创建模态框HTML
+    const modalHtml = `
+        <div class="modal fade" id="searchAlertModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-${type} text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                            ${title}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-${type}" data-bs-dismiss="modal">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 如果模态框已存在，先移除
+    const existingModal = document.getElementById('searchAlertModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 添加新模态框到页面
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('searchAlertModal'));
+    modal.show();
+
+    // 模态框关闭后移除DOM
+    document.getElementById('searchAlertModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+</script>
+{% endblock %}
